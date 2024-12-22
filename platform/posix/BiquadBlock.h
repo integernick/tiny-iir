@@ -2,10 +2,10 @@
 
 #include <cstring>
 
-namespace fast_iir {
+namespace tiny_iir {
 
 /**
- * @addtogroup fast_iir_module
+ * @addtogroup tiny_iir_module
  * @{
  */
 

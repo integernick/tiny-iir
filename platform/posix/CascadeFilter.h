@@ -4,7 +4,7 @@
 
 #include <array>
 
-namespace fast_iir {
+namespace tiny_iir {
     template<unsigned int ORDER,
             typename T = double,
             class BiquadBlockDirectForm = BiquadBlockDF1<T>>
@@ -34,21 +34,25 @@ namespace fast_iir {
             }
         }
 
+        [[nodiscard]] T get_gain() const {
+            return _gain;
+        }
+
         void set_gain(T gain) {
-            _gains[0] = gain;
+            _gain = gain;
         }
 
         T process(T x) {
-            x *= _gains[0];
+            x *= _gain;
             for (auto &biquad_block : _biquad_blocks) {
                 x = biquad_block.process(x);
             }
-            x *= _gains[1];
+            x *= _gain;
             return x;
         }
 
     private:
-        T _gains[2]{1.0, 1.0};
+        T _gain;
         T _coefficients[NUMBER_OF_COEFFICIENTS];
         BiquadBlockDirectForm _biquad_blocks[NUMBER_OF_BIQUAD_BLOCKS];
     };
