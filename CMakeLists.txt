@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.21)
-project(fast-iir)
+project(tiny-iir)
 
 set(CMAKE_CXX_STANDARD 20)
+
+find_package(GTest REQUIRED)
 
 # Option to select platform
 option(BUILD_FOR_ARM "Build for ARM platform using CMSIS-DSP" ON)
 
 # Include common headers
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/filter_design)
-#include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/chebyshev_type_1)
 
 if(BUILD_FOR_ARM)
     # Build for ARM Cortex-M
@@ -18,7 +18,7 @@ if(BUILD_FOR_ARM)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Include)
 
     # Define ARM_MATH_CM4 for Cortex-M4
-    target_compile_definitions(CMSISDSP PUBLIC ARM_MATH_CM4)
+    #target_compile_definitions(CMSISDSP PUBLIC ARM_MATH_CM4)
 
     set(LIBS CMSISDSP)
 else()
@@ -31,10 +31,6 @@ else()
             ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Source/*.c
     )
 
-    # Exclude ARM-specific source files if necessary
-    # list(FILTER CMSISDSP_SOURCES EXCLUDE REGEX ".*arm_*_q15.c$")
-    # Add more exclusions as needed
-
     add_library(CMSISDSP STATIC ${CMSISDSP_SOURCES})
 
     # Define ARM_MATH_AUTOVECTORIZE for generic C implementations
@@ -45,11 +41,19 @@ endif()
 
 # Add common source files
 set(SOURCES
-        src/fast_iir.cpp
-        # Add other source files as needed
+        src/tiny_iir.cpp
 )
 
-add_executable(fast-iir src/fast_iir.cpp ${SOURCES})
+add_executable(tiny-iir-tests
+        tests/test_filters.cpp
+)
 
-# Link CMSIS-DSP library
-target_link_libraries(fast-iir ${LIBS})
+target_link_libraries(tiny-iir-tests
+        PRIVATE
+        GTest::gtest
+        GTest::gtest_main
+        ${LIBS}
+)
+
+include(GoogleTest)
+gtest_discover_tests(tiny-iir-tests)
