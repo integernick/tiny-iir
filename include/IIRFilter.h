@@ -19,16 +19,35 @@ struct PoleZeroPair {
 template<size_t N, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
 class IIRFilter {
 public:
-    T process(T x) {
+    template<typename U>
+    [[nodiscard]] T process(U x) {
         return _cascade_filter.process(x);
     }
 
-    T process(T *x, size_t num_samples) {
+    void process(const T *x, T* out, size_t num_samples) {
+        _cascade_filter.process(x, out, num_samples);
+    }
+
+    [[nodiscard]] T process(const T *x, size_t num_samples) {
+        return _cascade_filter.process(x, num_samples);
+    }
+
+    template<typename U, std::enable_if_t<std::is_same_v<U, double>, int> = 0>
+    void process(const U *x, T *out, size_t num_samples) {
+        _cascade_filter.process(x, out, num_samples);
+    }
+
+    template<typename U, std::enable_if_t<std::is_same_v<U, double>, int> = 0>
+    [[nodiscard]] T process(U *x, size_t num_samples) {
         return _cascade_filter.process(x, num_samples);
     }
 
     [[nodiscard]] const CascadeFilter<N, T> &cascade_filter() const {
         return _cascade_filter;
+    }
+
+    void reset() {
+        _cascade_filter.reset_state();
     }
 
     virtual PoleZeroPair get_pole_zero_pairs_s_plane(unsigned int i) = 0;
@@ -55,12 +74,14 @@ protected:
             add_pole_zero_conjugates_pair(get_pole_zero_pairs_s_plane(i));
         }
 
+        _cascade_filter.set_gain(_gain_double);
         _cascade_filter.init_biquad_cascades();
     }
 
     static constexpr double INFINITY_VALUE = std::numeric_limits<double>::infinity();
 
     CascadeFilter<N, T> _cascade_filter;
+    double _gain_double = 1.0;
 
 private:
     std::complex<double> transform(std::complex<double> s) {
@@ -89,7 +110,7 @@ private:
             biquad_gain = (1 - b1 + b2) / (1 - a1 + a2);
         }
         _cascade_filter.push_biquad_coefficients(b0, b1, b2, a1, a2);
-        _cascade_filter.set_gain(_cascade_filter.get_gain() / biquad_gain);
+        _gain_double /= biquad_gain;
     }
 
     void add_pole_zero_conjugates_pair(const PoleZeroPair &pole_zero_pair) {

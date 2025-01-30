@@ -37,9 +37,9 @@ public:
 
     void configure(double Wn, double ripple_db) {
         if constexpr (N & 1) {
-            IIRFilter<N, T, PASS_TYPE>::_cascade_filter.set_gain(1.0);
+            IIRFilter<N, T, PASS_TYPE>::_gain_double = 1.0;
         } else {
-            IIRFilter<N, T, PASS_TYPE>::_cascade_filter.set_gain(std::exp(-ripple_db / 20 * M_LN10));
+            IIRFilter<N, T, PASS_TYPE>::_gain_double = std::exp(-ripple_db / 20 * M_LN10);
         }
 
         const double epsilon = std::sqrt(std::exp(ripple_db * 0.1 * M_LN10) - 1);

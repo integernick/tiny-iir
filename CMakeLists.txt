@@ -23,7 +23,7 @@ if(BUILD_FOR_ARM)
     set(LIBS CMSISDSP)
 else()
     # Build for POSIX (macOS arm64)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platform/posix)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platform/general)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Include)
 
     # Compile CMSIS-DSP source files
@@ -39,13 +39,9 @@ else()
     set(LIBS CMSISDSP)
 endif()
 
-# Add common source files
-set(SOURCES
-        src/tiny_iir.cpp
-)
-
 add_executable(tiny-iir-tests
         tests/test_filters.cpp
+        tests/test_cheby1.cpp
 )
 
 target_link_libraries(tiny-iir-tests

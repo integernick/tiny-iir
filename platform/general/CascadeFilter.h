@@ -5,9 +5,8 @@
 #include <array>
 
 namespace tiny_iir {
-    template<unsigned int ORDER,
-            typename T = double,
-            class BiquadBlockDirectForm = BiquadBlockDF1<T>>
+    template<unsigned int ORDER, typename T = double,
+             class BiquadBlockDirectForm = BiquadBlockDF1<T>>
     class CascadeFilter {
     public:
         static constexpr unsigned int NUMBER_OF_BIQUAD_BLOCKS = (ORDER + 1) / 2;
