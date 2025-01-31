@@ -40,8 +40,8 @@ else()
 endif()
 
 add_executable(tiny-iir-tests
-        tests/test_filters.cpp
         tests/test_cheby1.cpp
+        tests/test_cheby2.cpp
 )
 
 target_link_libraries(tiny-iir-tests

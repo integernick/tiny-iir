@@ -19,6 +19,8 @@ struct PoleZeroPair {
 template<size_t N, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
 class IIRFilter {
 public:
+    using ValueType = T;
+
     template<typename U>
     [[nodiscard]] T process(U x) {
         return _cascade_filter.process(x);
@@ -53,6 +55,8 @@ public:
     virtual PoleZeroPair get_pole_zero_pairs_s_plane(unsigned int i) = 0;
 
     virtual PoleZeroPair get_pole_zero_real_axis() = 0;
+
+    static constexpr size_t ORDER = N;
 
 protected:
     virtual ~IIRFilter() = default;

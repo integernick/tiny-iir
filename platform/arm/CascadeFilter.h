@@ -1,9 +1,11 @@
 #pragma once
 
+#include "utils.h"
+
 #include <dsp/filtering_functions.h>
 #include <type_traits>
 
-#define CASCADE_FILTER_DEBUG    1
+#define CASCADE_FILTER_DEBUG    0
 #if CASCADE_FILTER_DEBUG > 0
 #include <iostream>
 #include <iomanip>
@@ -27,31 +29,6 @@ public:
 
         static void process_cascade(type *cascade, float *src, float *dst, uint32_t block_size) {
             arm_biquad_cascade_df2T_f32(cascade, src, dst, block_size);
-        }
-
-        template <typename U>
-        static void to_native(const U *x,float *x_native, uint32_t num_samples) {
-            if constexpr (std::is_same<U, double>::value) {
-                arm_f64_to_float(x, x_native, num_samples);
-            } else if constexpr (std::is_same<U, q31_t>::value) {
-                arm_q31_to_f31(x, x_native, num_samples);
-            } else if constexpr (std::is_same<T, U>::value) {
-                std::copy(x, x + num_samples, x_native);
-            } else {
-                static_assert(false, "Unsupported conversion type");
-            }
-        }
-
-        static void to_double(const T *x, double *x_double, size_t num_samples) {
-            if constexpr (std::is_same<T, float>::value) {
-                arm_float_to_double(x, x_double, num_samples);
-            } else if constexpr (std::is_same<T, q31_t>::value) {
-                arm_q31_to_double(x, x_double, num_samples);
-            } else if constexpr (std::is_same<T, double>::value) {
-                std::copy(x, x + num_samples, x_double);
-            } else {
-                static_assert(false, "Unsupported conversion type");
-            }
         }
 
         [[nodiscard]] static float multiply(float x, float y) {
@@ -79,31 +56,6 @@ public:
             arm_biquad_cascade_df2T_f64(cascade, src, dst, block_size);
         }
 
-        template<typename U>
-        static void to_native(const U *x, float *x_native, uint32_t num_samples) {
-            if constexpr (std::is_same<U, float>::value) {
-                arm_float_to_f64(x, x_native, num_samples);
-            } else if constexpr (std::is_same<U, q31_t>::value) {
-                arm_q31_to_f64(x, x_native, num_samples);
-            } else if constexpr (std::is_same<T, U>::value) {
-                std::copy(x, x + num_samples, x_native);
-            } else {
-                static_assert(false, "Unsupported conversion type");
-            }
-        }
-
-        static void to_double(const T *x, double *x_double, size_t num_samples) {
-            if constexpr (std::is_same<T, float>::value) {
-                arm_float_to_f64(x, x_double, num_samples);
-            } else if constexpr (std::is_same<T, q31_t>::value) {
-                arm_q31_to_f64(x, x_double, num_samples);
-            } else if constexpr (std::is_same<T, double>::value) {
-                std::copy(x, x + num_samples, x_double);
-            } else {
-                static_assert(false, "Unsupported conversion type");
-            }
-        }
-
         [[nodiscard]] static double multiply(double x, double y) {
             return x * y;
         }
@@ -127,31 +79,6 @@ public:
 
         static void process_cascade(type *cascade, q31_t *src, q31_t *dst, uint32_t block_size) {
             arm_biquad_cascade_df1_q31(cascade, src, dst, block_size);
-        }
-
-        template <typename U>
-        static void to_native(const U *x, q31_t *x_native, uint32_t num_samples) {
-            if constexpr (std::is_same<U, float>::value) {
-                arm_float_to_q31(x, x_native, num_samples);
-            } else if constexpr (std::is_same<U, double>::value) {
-                arm_f64_to_q31(x, x_native, num_samples);
-            } else if constexpr (std::is_same<T, U>::value) {
-                std::copy(x, x + num_samples, x_native);
-            } else {
-                static_assert(false, "Unsupported conversion type");
-            }
-        }
-
-        static void to_double(const T *x, double *x_double, size_t num_samples) {
-            if constexpr (std::is_same<T, float>::value) {
-                arm_float_to_f64(x, x_double, num_samples);
-            } else if constexpr (std::is_same<T, q31_t>::value) {
-                arm_q31_to_f64(x, x_double, num_samples);
-            } else if constexpr (std::is_same<T, double>::value) {
-                std::copy(x, x + num_samples, x_double);
-            } else {
-                static_assert(false, "Unsupported conversion type");
-            }
         }
 
         [[nodiscard]] static q31_t multiply(q31_t x, q31_t y) {
@@ -237,11 +164,15 @@ public:
         return _gain;
     }
 
+    [[nodiscard]] int get_number_of_blocks() const {
+        return _num_biquad_blocks_set;
+    }
+
     void set_gain(double gain) {
         if constexpr (std::is_same<T, double>::value) {
             _gain = gain;
         } else {
-            BiquadCascade<T>::to_native(&gain, &_gain, 1);
+            to_native(&gain, &_gain, 1);
         }
     }
 
@@ -275,7 +206,7 @@ public:
     template <typename U, typename std::enable_if<!std::is_same<T, U>::value, int>::type = 0>
     [[nodiscard]] T process(U x) {
         T x_native;
-        BiquadCascade<T>::to_native(&x, &x_native, 1);
+        to_native(&x, &x_native, 1);
         x_native = BiquadCascade<T>::multiply(x_native, _gain);
         T output = 0;
         BiquadCascade<T>::process_cascade(&_biquad_cascade, &x_native, &output, 1);
@@ -288,7 +219,7 @@ public:
             return;
         }
         T x_native[num_samples];
-        BiquadCascade<T>::to_native(x, x_native, num_samples);
+        to_native(x, x_native, num_samples);
         for (uint32_t i = 0; i < num_samples; ++i) {
             x_native[i] = BiquadCascade<T>::multiply(x_native[i], _gain);
         }
@@ -305,16 +236,16 @@ public:
         return output_buffer[num_samples - 1];
     }
 
-private:
-    typedef typename BiquadCascade<T>::type biquad_cascade_t;
-
     static constexpr unsigned int NUMBER_OF_BIQUAD_BLOCKS = (N + 1) / 2;
     static constexpr unsigned int COEFFICIENTS_PER_BIQUAD_BLOCK = 5;
     static constexpr unsigned int NUMBER_OF_COEFFICIENTS
             = NUMBER_OF_BIQUAD_BLOCKS * COEFFICIENTS_PER_BIQUAD_BLOCK;
     static constexpr unsigned int DELAY_LINE_SIZE = std::is_same<T, q31_t>::value
-            ? NUMBER_OF_BIQUAD_BLOCKS * 4
-            : NUMBER_OF_BIQUAD_BLOCKS * 2;
+                                                    ? NUMBER_OF_BIQUAD_BLOCKS * 4
+                                                    : NUMBER_OF_BIQUAD_BLOCKS * 2;
+
+private:
+    typedef typename BiquadCascade<T>::type biquad_cascade_t;
 
     biquad_cascade_t _biquad_cascade;
 
