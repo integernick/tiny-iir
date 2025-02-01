@@ -1,55 +1,39 @@
 cmake_minimum_required(VERSION 3.21)
-project(tiny-iir)
+project(tiny-iir LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(GTest REQUIRED)
-
-# Option to select platform
 option(BUILD_FOR_ARM "Build for ARM platform using CMSIS-DSP" ON)
-
-# Include common headers
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+option(TINY_IIR_BUILD_TESTS "Build tests" ON)
 
 if(BUILD_FOR_ARM)
-    # Build for ARM Cortex-M
-    add_subdirectory(CMSIS-DSP)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platform/arm)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Include)
-
-    # Define ARM_MATH_CM4 for Cortex-M4
-    #target_compile_definitions(CMSISDSP PUBLIC ARM_MATH_CM4)
-
-    set(LIBS CMSISDSP)
-else()
-    # Build for POSIX (macOS arm64)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/platform/general)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Include)
-
-    # Compile CMSIS-DSP source files
-    file(GLOB_RECURSE CMSISDSP_SOURCES
-            ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Source/*.c
-    )
-
-    add_library(CMSISDSP STATIC ${CMSISDSP_SOURCES})
-
-    # Define ARM_MATH_AUTOVECTORIZE for generic C implementations
-    target_compile_definitions(CMSISDSP PUBLIC ARM_MATH_AUTOVECTORIZE)
-
-    set(LIBS CMSISDSP)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP CMSIS-DSP-build)
 endif()
 
-add_executable(tiny-iir-tests
-        tests/test_cheby1.cpp
-        tests/test_cheby2.cpp
+add_library(tiny_iir_core INTERFACE)
+
+target_include_directories(tiny_iir_core
+        INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(tiny-iir-tests
-        PRIVATE
-        GTest::gtest
-        GTest::gtest_main
-        ${LIBS}
-)
+if(BUILD_FOR_ARM)
+    target_include_directories(tiny_iir_core
+            INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/platform/arm
+            ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Include
+    )
+    target_link_libraries(tiny_iir_core INTERFACE CMSISDSP)
+    target_compile_definitions(tiny_iir_core INTERFACE USE_CMSIS_DSP)
+else()
+    target_include_directories(tiny_iir_core
+            INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR}/../platform/generic
+    )
+endif()
 
-include(GoogleTest)
-gtest_discover_tests(tiny-iir-tests)
+if(TINY_IIR_BUILD_TESTS)
+    find_package(GTest REQUIRED)
+    add_subdirectory(tests)
+endif()

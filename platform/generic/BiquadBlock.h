@@ -13,7 +13,7 @@ namespace tiny_iir {
  * @brief   Biquad block (direct form I).
  *
  * @details Implements H(z) = Y(z) / X(z) = H1(z) * H2(z), where
- *          H1(z) = 1 / (1 + a1 * z^-1 + a2 * z^-2) = V(z) / X(z),
+ *          H1(z) = 1 / (1 - a1 * z^-1 - a2 * z^-2) = V(z) / X(z),
  *          H2(z) = b0 + b1 * z^-1 + b2 * z^-2 = Y(z) / V(z).
  * @tparam  T       Data type.
  * @tparam  FORM    Block form.
@@ -27,7 +27,7 @@ public:
     }
 
     T process(T input) {
-        const T v = input - _A[0] * _delay_line[0] - _A[1] * _delay_line[1];
+        const T v = input + _A[0] * _delay_line[0] + _A[1] * _delay_line[1];
         const T output = _B[0] * v + _B[1] * _delay_line[0] + _B[2] * _delay_line[1];
 
         _delay_line[1] = _delay_line[0];
@@ -50,7 +50,7 @@ private:
 /**
  * @brief   Biquad block (direct form II or canonical form).
  *
- * @details Implements H(z) = (b0 + b1 * z^-1 + b2 * z^-2) / (1 + a1 * z^-1 + a2 * z^-2)
+ * @details Implements H(z) = (b0 + b1 * z^-1 + b2 * z^-2) / (1 - a1 * z^-1 - a2 * z^-2)
  * @tparam  T       Data type.
  * @tparam  FORM    Block form.
  */
@@ -64,7 +64,7 @@ public:
 
     T process(T input) {
         const T output = _B[0] * input + _B[1] * _delay_line_x[0] + _B[2] * _delay_line_x[1]
-                         - _A[0] * _delay_line_y[0] - _A[1] * _delay_line_y[1];
+                         + _A[0] * _delay_line_y[0] + _A[1] * _delay_line_y[1];
 
         _delay_line_x[1] = _delay_line_x[0];
         _delay_line_x[0] = input;

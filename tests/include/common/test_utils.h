@@ -1,12 +1,13 @@
 #pragma once
 
 #include <utils.h>
+#include <CascadeFilter.h>
+
 #include <gtest/gtest.h>
 
 namespace tiny_iir {
 
 static constexpr double TOL_DOUBLE = 1e-9;
-static constexpr double TOL_Q31 = 1e-8;
 
 template<class FILTER>
 void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<double> &expected_coeffs,
@@ -18,9 +19,9 @@ void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<d
     constexpr size_t COEFFICIENTS_PER_BIQUAD_BLOCK = CascadeFilter<FILTER::ORDER, ValueType>::COEFFICIENTS_PER_BIQUAD_BLOCK;
 
     EXPECT_EQ(expected_coeffs.size(), NUM_OF_COEFFICIENTS)
-        << "Expected coefficients size must be " << NUM_OF_COEFFICIENTS;
+                        << "Expected coefficients size must be " << NUM_OF_COEFFICIENTS;
     EXPECT_EQ(filter.cascade_filter().get_number_of_blocks(), expected_coeffs.size() / COEFFICIENTS_PER_BIQUAD_BLOCK)
-        << "Number of blocks mismatch";
+                        << "Number of blocks mismatch";
 
     const ValueType gain = filter.cascade_filter().get_gain();
     double gain_as_double;
@@ -32,20 +33,6 @@ void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<d
     for (size_t i = 0; i < NUM_OF_BIQUAD_BLOCKS; ++i) {
         std::vector<double> expected_biquad_coeffs{expected_coeffs.begin() + i * COEFFICIENTS_PER_BIQUAD_BLOCK,
                                                    expected_coeffs.begin() + (i + 1) * COEFFICIENTS_PER_BIQUAD_BLOCK};
-        if constexpr (std::is_same<ValueType, q31_t>::value) {
-
-            double abs_max_coeff = std::abs(*std::max_element(expected_biquad_coeffs.begin(),
-                                                              expected_biquad_coeffs.end(),
-                                                              [](double a, double b) {
-                                                                  return std::abs(a) < std::abs(b);
-                                                              }));
-
-            if (abs_max_coeff > 1) {
-                for (auto &coeff: expected_biquad_coeffs) {
-                    coeff /= abs_max_coeff;
-                }
-            }
-        }
 
         for (size_t j = 0; j < COEFFICIENTS_PER_BIQUAD_BLOCK; ++j) {
             const size_t coeff_idx = i * COEFFICIENTS_PER_BIQUAD_BLOCK + j;
