@@ -40,7 +40,7 @@ PoleZeroPair IIRButter<N, T, PASS_TYPE>::get_pole_zero_real_axis() {
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>
 void IIRButter<N, T, PASS_TYPE>::configure(double Wn) {
-    IIRFilter<N, T, PASS_TYPE>::_gain = 1.0;
+    IIRFilter<N, T, PASS_TYPE>::_gain_double = 1.0;
     _d_phi = M_PI_2 / N;
     IIRFilter<N, T, PASS_TYPE>::configure(Wn);
 }

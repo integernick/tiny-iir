@@ -5,6 +5,8 @@
 
 using namespace tiny_iir;
 
+constexpr double TOL = TOL_Q31;
+
 TEST(Cheby2Test, Cheby2LPFQ31Coeffs) {
     IIRCheby2<4, q31_t> cheby2_lpf(0.5, 40.0);
 
@@ -15,7 +17,7 @@ TEST(Cheby2Test, Cheby2LPFQ31Coeffs) {
     };
     normalize_coeffs(expected_coeffs);
 
-    test_coeffs(cheby2_lpf, GAIN_EXPECTED, expected_coeffs, TOL_Q31);
+    test_coeffs(cheby2_lpf, GAIN_EXPECTED, expected_coeffs, TOL);
 }
 
 TEST(Cheby2Test, Cheby2HPFQ31Coeffs) {

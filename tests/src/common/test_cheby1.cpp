@@ -4,6 +4,8 @@
 
 using namespace tiny_iir;
 
+constexpr double TOL = TOL_DOUBLE;
+
 TEST(Cheby1Test, Cheby1LPFDoubleCoeffs) {
     IIRCheby1<1, double> cheby1_lpf_double(0.75, 0.1);
 
@@ -12,7 +14,7 @@ TEST(Cheby1Test, Cheby1LPFDoubleCoeffs) {
             1.0, 1.0, 0.0, -0.881082750141717, 0.0
     };
 
-    test_coeffs(cheby1_lpf_double, GAIN_EXPECTED, expected_coeffs, TOL_DOUBLE);
+    test_coeffs(cheby1_lpf_double, GAIN_EXPECTED, expected_coeffs, TOL);
 }
 
 TEST(Cheby1Test, Cheby1LPFDoubleImpulseResponse) {
@@ -26,7 +28,7 @@ TEST(Cheby1Test, Cheby1LPFDoubleImpulseResponse) {
             -0.0192089830548209, -0.00093611102586206, 0.0131762335480102, -0.000752519593701615
     };
 
-    test_impulse_response(cheby1_lpf, expected, TOL_DOUBLE);
+    test_impulse_response(cheby1_lpf, expected, TOL);
     cheby1_lpf.reset();
-    test_impulse_response_batch(cheby1_lpf, expected, TOL_DOUBLE);
+    test_impulse_response_batch(cheby1_lpf, expected, TOL);
 }

@@ -5,9 +5,11 @@
 #include <dsp/filtering_functions.h>
 #include <type_traits>
 
-#define CASCADE_FILTER_DEBUG    0
+#define CASCADE_FILTER_DEBUG    1
 #if CASCADE_FILTER_DEBUG > 0
 
+#include <iostream>
+#include <iomanip>
 #include <cstdio>
 
 #endif
@@ -115,25 +117,41 @@ public:
 #if CASCADE_FILTER_DEBUG > 0
 
     void print_coefficients() const {
+//        double gain_double;
+//        to_double(&_gain, &gain_double, 1);
+//        char debug_buf[128];
+//        snprintf(debug_buf, sizeof(debug_buf), "gain: %.8f\n", gain_double);
+//        printf("%s", debug_buf);
+//        snprintf(debug_buf, sizeof(debug_buf), "coefficients:\n");
+//        printf("%s", debug_buf);
+//        for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
+//            double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
+//            to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
+//                      biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
+//            snprintf(debug_buf, sizeof(debug_buf),
+//                     "%.8f, %.8f, %.8f, 1, %.8f, %.8f\n",
+//                     biquad_coefficients_double[0],
+//                     biquad_coefficients_double[1],
+//                     biquad_coefficients_double[2],
+//                     biquad_coefficients_double[3],
+//                     biquad_coefficients_double[4]);
+//            printf("%s", debug_buf);
+//        }
         double gain_double;
         to_double(&_gain, &gain_double, 1);
-        char debug_buf[128];
-        snprintf(debug_buf, sizeof(debug_buf), "gain: %.8f\n", gain_double);
-        printf("%s", debug_buf);
-        snprintf(debug_buf, sizeof(debug_buf), "coefficients:\n");
-        printf("%s", debug_buf);
+        std::cout << std::setprecision(15) << "gain: " << gain_double << std::endl;
         for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
             double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
             to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
                       biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
-            snprintf(debug_buf, sizeof(debug_buf),
-                     "%.8f, %.8f, %.8f, 1, %.8f, %.8f\n",
-                     biquad_coefficients_double[0],
-                     biquad_coefficients_double[1],
-                     biquad_coefficients_double[2],
-                     biquad_coefficients_double[3],
-                     biquad_coefficients_double[4]);
-            printf("%s", debug_buf);
+            std::cout << std::setprecision(15)
+                      << biquad_coefficients_double[0]
+                      << ", " << biquad_coefficients_double[1]
+                      << ", " << biquad_coefficients_double[2]
+                      << ", 1"
+                      << ", " << biquad_coefficients_double[3]
+                      << ", " << biquad_coefficients_double[4] << ";"
+                      << std::endl;
         }
     }
 
