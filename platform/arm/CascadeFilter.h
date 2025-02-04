@@ -110,152 +110,42 @@ public:
         }
     };
 
-    [[nodiscard]] const T *get_coefficients() const {
-        return _coefficients;
-    }
+    [[nodiscard]] const T *get_coefficients() const;
 
 #if CASCADE_FILTER_DEBUG > 0
 
-    void print_coefficients() const {
-//        double gain_double;
-//        to_double(&_gain, &gain_double, 1);
-//        char debug_buf[128];
-//        snprintf(debug_buf, sizeof(debug_buf), "gain: %.8f\n", gain_double);
-//        printf("%s", debug_buf);
-//        snprintf(debug_buf, sizeof(debug_buf), "coefficients:\n");
-//        printf("%s", debug_buf);
-//        for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
-//            double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
-//            to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
-//                      biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
-//            snprintf(debug_buf, sizeof(debug_buf),
-//                     "%.8f, %.8f, %.8f, 1, %.8f, %.8f\n",
-//                     biquad_coefficients_double[0],
-//                     biquad_coefficients_double[1],
-//                     biquad_coefficients_double[2],
-//                     biquad_coefficients_double[3],
-//                     biquad_coefficients_double[4]);
-//            printf("%s", debug_buf);
-//        }
-        double gain_double;
-        to_double(&_gain, &gain_double, 1);
-        std::cout << std::setprecision(15) << "gain: " << gain_double << std::endl;
-        for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
-            double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
-            to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
-                      biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
-            std::cout << std::setprecision(15)
-                      << biquad_coefficients_double[0]
-                      << ", " << biquad_coefficients_double[1]
-                      << ", " << biquad_coefficients_double[2]
-                      << ", 1"
-                      << ", " << biquad_coefficients_double[3]
-                      << ", " << biquad_coefficients_double[4] << ";"
-                      << std::endl;
-        }
-    }
+    void print_coefficients() const;
 
 #endif
 
-    bool push_biquad_coefficients(double b0, double b1, double b2, double a1, double a2) {
-        if (_num_biquad_blocks_set >= NUMBER_OF_BIQUAD_BLOCKS) {
-            return false;
-        }
-        T *current_coefficients_block = &_coefficients[_num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK];
-        BiquadCascade<T>::push_biquad_coefficients(current_coefficients_block, b0, b1, b2, a1, a2);
-        ++_num_biquad_blocks_set;
-        return true;
-    }
+    bool push_biquad_coefficients(double b0, double b1, double b2, double a1, double a2);
 
-    void init_biquad_cascades() {
-        BiquadCascade<T>::init(&_biquad_cascade, NUMBER_OF_BIQUAD_BLOCKS, _coefficients, _delay_pipeline);
-    }
+    void init_biquad_cascades();
 
-    void reset_state() {
-        memset(_delay_pipeline, 0, sizeof(_delay_pipeline));
-    }
+    void reset_state();
 
-    void reset() {
-        _num_biquad_blocks_set = 0;
-        memset(_coefficients, 0, sizeof(_coefficients));
-        memset(_delay_pipeline, 0, sizeof(_delay_pipeline));
-    }
+    void reset();
 
-    [[nodiscard]] T get_gain() const {
-        return _gain;
-    }
+    [[nodiscard]] T get_gain() const;
 
-    [[nodiscard]] int get_number_of_blocks() const {
-        return _num_biquad_blocks_set;
-    }
+    [[nodiscard]] uint32_t get_number_of_blocks() const;
 
-    void set_gain(double gain) {
-        if constexpr (std::is_same<T, double>::value) {
-            _gain = gain;
-        } else {
-            to_native(&gain, &_gain, 1);
-        }
-    }
+    void set_gain(double gain);
 
-    [[nodiscard]] T process(T x) {
-        x = BiquadCascade<T>::multiply(x, _gain);
-        T output = 0;
-        BiquadCascade<T>::process_cascade(&_biquad_cascade, &x, &output, 1);
-        return output;
-    }
+    [[nodiscard]] T process(T x);
 
-    void process(const T *x, T *out, uint32_t num_samples) {
-        if (num_samples == 0) {
-            return;
-        }
-        T input_buffer[num_samples];
-        for (uint32_t i = 0; i < num_samples; ++i) {
-            input_buffer[i] = BiquadCascade<T>::multiply(x[i], _gain);
-        }
-        BiquadCascade<T>::process_cascade(&_biquad_cascade, input_buffer, out, num_samples);
-    }
+    void process(const T *x, T *out, uint32_t num_samples);
 
-    [[nodiscard]] T process(const T *x, uint32_t num_samples) {
-        if (num_samples == 0) {
-            return 0;
-        }
-        T output_buffer[num_samples];
-        process(x, output_buffer, num_samples);
-        return output_buffer[num_samples - 1];
-    }
+    [[nodiscard]] T process(const T *x, uint32_t num_samples);
 
-    template<typename U, typename std::enable_if<!std::is_same<T, U>::value, int>::type = 0>
-    [[nodiscard]] T process(U x) {
-        T x_native;
-        to_native(&x, &x_native, 1);
-        x_native = BiquadCascade<T>::multiply(x_native, _gain);
-        T output = 0;
-        BiquadCascade<T>::process_cascade(&_biquad_cascade, &x_native, &output, 1);
-        return output;
-    }
+    template<typename U, typename std::enable_if<!std::is_same<T, U>::value, bool>::type = 0>
+    [[nodiscard]] T process(U x);
 
-    template<typename U, typename std::enable_if<!std::is_same<T, U>::value, int>::type = 0>
-    void process(const U *x, T *out, uint32_t num_samples) {
-        if (num_samples == 0) {
-            return;
-        }
-        T x_native[num_samples];
-        to_native(x, x_native, num_samples);
-        for (uint32_t i = 0; i < num_samples; ++i) {
-            x_native[i] = BiquadCascade<T>::multiply(x_native[i], _gain);
-        }
-        BiquadCascade<T>::process_cascade(&_biquad_cascade, x_native, out, num_samples);
-    }
+    template<typename U, typename std::enable_if<!std::is_same<T, U>::value, bool>::type = 0>
+    void process(const U *x, T *out, uint32_t num_samples);
 
-    template<typename U, typename std::enable_if<!std::is_same<T, U>::value, int>::type = 0>
-    [[nodiscard]] T process(const U *x, uint32_t num_samples) {
-        if (num_samples == 0) {
-            return 0;
-        }
-        T output_buffer[num_samples];
-        process(x, output_buffer, num_samples);
-        return output_buffer[num_samples - 1];
-    }
+    template<typename U, typename std::enable_if<!std::is_same<T, U>::value, bool>::type = 0>
+    [[nodiscard]] T process(const U *x, uint32_t num_samples);
 
     static constexpr unsigned int NUMBER_OF_BIQUAD_BLOCKS = (N + 1) / 2;
     static constexpr unsigned int COEFFICIENTS_PER_BIQUAD_BLOCK = 5;
@@ -276,5 +166,146 @@ private:
 
     T _delay_pipeline[DELAY_LINE_SIZE]{};
 };
+
+template<unsigned int N, typename T>
+const T *CascadeFilter<N, T>::get_coefficients() const {
+    return _coefficients;
+}
+
+template<unsigned int N, typename T>
+void CascadeFilter<N, T>::print_coefficients() const {
+    double gain_double;
+    to_double(&_gain, &gain_double, 1);
+    char debug_buf[128];
+    snprintf(debug_buf, sizeof(debug_buf), "gain: %.15f\n", gain_double);
+    printf("%s", debug_buf);
+    snprintf(debug_buf, sizeof(debug_buf), "coefficients:\n");
+    printf("%s", debug_buf);
+    for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
+        double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
+        to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
+                  biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
+        snprintf(debug_buf, sizeof(debug_buf),
+                 "1 %.15f %.15f 1 %.15f %.15f\n",
+                 biquad_coefficients_double[1],
+                 biquad_coefficients_double[2],
+                 -biquad_coefficients_double[3],
+                 -biquad_coefficients_double[4]);
+        printf("%s", debug_buf);
+    }
+}
+
+template<unsigned int N, typename T>
+bool CascadeFilter<N, T>::push_biquad_coefficients(double b0, double b1, double b2, double a1, double a2) {
+    if (_num_biquad_blocks_set >= NUMBER_OF_BIQUAD_BLOCKS) {
+        return false;
+    }
+    T *current_coefficients_block = &_coefficients[_num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK];
+    BiquadCascade<T>::push_biquad_coefficients(current_coefficients_block, b0, b1, b2, a1, a2);
+    ++_num_biquad_blocks_set;
+    return true;
+}
+
+template<unsigned int N, typename T>
+void CascadeFilter<N, T>::init_biquad_cascades() {
+    BiquadCascade<T>::init(&_biquad_cascade, NUMBER_OF_BIQUAD_BLOCKS, _coefficients, _delay_pipeline);
+}
+
+template<unsigned int N, typename T>
+void CascadeFilter<N, T>::reset_state() {
+    memset(_delay_pipeline, 0, sizeof(_delay_pipeline));
+}
+
+template<unsigned int N, typename T>
+void CascadeFilter<N, T>::reset() {
+    _num_biquad_blocks_set = 0;
+    memset(_coefficients, 0, sizeof(_coefficients));
+    memset(_delay_pipeline, 0, sizeof(_delay_pipeline));
+}
+
+template<unsigned int N, typename T>
+T CascadeFilter<N, T>::get_gain() const {
+    return _gain;
+}
+
+template<unsigned int N, typename T>
+uint32_t CascadeFilter<N, T>::get_number_of_blocks() const {
+    return _num_biquad_blocks_set;
+}
+
+template<unsigned int N, typename T>
+void CascadeFilter<N, T>::set_gain(double gain) {
+    if constexpr (std::is_same<T, double>::value) {
+        _gain = gain;
+    } else {
+        to_native(&gain, &_gain, 1);
+    }
+}
+
+template<unsigned int N, typename T>
+T CascadeFilter<N, T>::process(T x) {
+    x = BiquadCascade<T>::multiply(x, _gain);
+    T output = 0;
+    BiquadCascade<T>::process_cascade(&_biquad_cascade, &x, &output, 1);
+    return output;
+}
+
+template<unsigned int N, typename T>
+void CascadeFilter<N, T>::process(const T *x, T *out, uint32_t num_samples) {
+    if (num_samples == 0) {
+        return;
+    }
+    T input_buffer[num_samples];
+    for (uint32_t i = 0; i < num_samples; ++i) {
+        input_buffer[i] = BiquadCascade<T>::multiply(x[i], _gain);
+    }
+    BiquadCascade<T>::process_cascade(&_biquad_cascade, input_buffer, out, num_samples);
+}
+
+template<unsigned int N, typename T>
+T CascadeFilter<N, T>::process(const T *x, uint32_t num_samples) {
+    if (num_samples == 0) {
+        return 0;
+    }
+    T output_buffer[num_samples];
+    process(x, output_buffer, num_samples);
+    return output_buffer[num_samples - 1];
+}
+
+template<unsigned int N, typename T>
+template<typename U, std::enable_if<!std::is_same<T, U>::value, bool>::type>
+T CascadeFilter<N, T>::process(U x) {
+    T x_native;
+    to_native(&x, &x_native, 1);
+    x_native = BiquadCascade<T>::multiply(x_native, _gain);
+    T output = 0;
+    BiquadCascade<T>::process_cascade(&_biquad_cascade, &x_native, &output, 1);
+    return output;
+}
+
+template<unsigned int N, typename T>
+template<typename U, std::enable_if<!std::is_same<T, U>::value, bool>::type>
+void CascadeFilter<N, T>::process(const U *x, T *out, uint32_t num_samples) {
+    if (num_samples == 0) {
+        return;
+    }
+    T x_native[num_samples];
+    to_native(x, x_native, num_samples);
+    for (uint32_t i = 0; i < num_samples; ++i) {
+        x_native[i] = BiquadCascade<T>::multiply(x_native[i], _gain);
+    }
+    BiquadCascade<T>::process_cascade(&_biquad_cascade, x_native, out, num_samples);
+}
+
+template<unsigned int N, typename T>
+template<typename U, std::enable_if<!std::is_same<T, U>::value, bool>::type>
+T CascadeFilter<N, T>::process(const U *x, uint32_t num_samples) {
+    if (num_samples == 0) {
+        return 0;
+    }
+    T output_buffer[num_samples];
+    process(x, output_buffer, num_samples);
+    return output_buffer[num_samples - 1];
+}
 
 }

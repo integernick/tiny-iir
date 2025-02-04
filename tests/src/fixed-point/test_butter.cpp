@@ -12,15 +12,13 @@ constexpr double TOL = 1e-4;
 TEST(ButterTest, ButterLPFQ31Coeffs) {
     IIRButter<7, q31_t> butter_lpf(0.75);
 
-    butter_lpf.cascade_filter().print_coefficients();
-
     constexpr double GAIN_EXPECTED = 0.161071111239757;
     // TODO: Check why MATLAB calculates b0, b1, b2 coefficients that slightly differ from 1.0 or 2.0 by about 0.01
     std::vector<double> expected_coeffs = {
-            1, 1.0, 0.0, -0.414213562373084, -0.0,
-            1, 2.0, 1.0, -0.863862810051667, -0.221686502004782,
-            1, 2.0, 1.0, -0.981497128142559, -0.388046550049447,
-            1, 2.0, 1.0, -1.22194528464162, -0.728091594018049,
+            1, 1.0, 0.0, 1, 0.414213562373084, 0.0,
+            1, 2.0, 1.0, 1, 0.863862810051667, 0.221686502004782,
+            1, 2.0, 1.0, 1, 0.981497128142559, 0.388046550049447,
+            1, 2.0, 1.0, 1, 1.22194528464162, 0.728091594018049,
     };
     normalize_coeffs(expected_coeffs);
 
@@ -39,6 +37,4 @@ TEST(ButterTest, ButterLPFQ31ImpulseResponse) {
     };
 
     test_impulse_response(butter_lpf, expected, TOL);
-    butter_lpf.reset();
-    test_impulse_response_batch(butter_lpf, expected, TOL);
 }

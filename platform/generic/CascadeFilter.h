@@ -4,10 +4,12 @@
 
 #include <array>
 
-#define CASCADE_FILTER_DEBUG    0
+#define CASCADE_FILTER_DEBUG    1
 #if CASCADE_FILTER_DEBUG > 0
+
 #include <iostream>
 #include <iomanip>
+
 #endif
 
 namespace tiny_iir {
@@ -25,24 +27,26 @@ public:
     }
 
 #if CASCADE_FILTER_DEBUG > 0
+
     void print_coefficients() const {
-    double gain_double;
-    BiquadCascade<T>::to_double(&_gain, &gain_double, 1);
-    std::cout << std::setprecision(15) << "gain: " << gain_double << std::endl;
-    for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
-        double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
-        BiquadCascade<T>::to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
-                                    biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
-        std::cout << std::setprecision(15)
-                  << biquad_coefficients_double[0]
-                  << ", " << biquad_coefficients_double[1]
-                  << ", " << biquad_coefficients_double[2]
-                  << ", 1"
-                  << ", " << biquad_coefficients_double[3]
-                  << ", " << biquad_coefficients_double[4] << ";"
-                  << std::endl;
+        double gain_double;
+        to_double(&_gain, &gain_double, 1);
+        std::cout << std::setprecision(15) << "gain: " << gain_double << std::endl;
+        for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
+            double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
+            to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
+                      biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
+            std::cout << std::setprecision(15)
+                      << biquad_coefficients_double[0]
+                      << " " << biquad_coefficients_double[1]
+                      << " " << biquad_coefficients_double[2]
+                      << " 1"
+                      << " " << biquad_coefficients_double[3]
+                      << " " << biquad_coefficients_double[4]
+                      << std::endl;
+        }
     }
-}
+
 #endif
 
     bool push_biquad_coefficients(double b0, double b1, double b2, double a1, double a2) {

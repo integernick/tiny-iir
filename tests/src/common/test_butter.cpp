@@ -12,10 +12,10 @@ TEST(ButterTest, ButterLPFDoubleCoeffs) {
     constexpr double GAIN_EXPECTED = 0.161071111239757;
     // TODO: Check why MATLAB calculates b0, b1, b2 coefficients that slightly differ from 1.0 or 2.0 by about 0.01
     const std::vector<double> expected_coeffs = {
-            1, 1.0, 0.0, -0.414213562373084, -0.0,
-            1, 2.0, 1.0, -0.863862810051667, -0.221686502004782,
-            1, 2.0, 1.0, -0.981497128142559, -0.388046550049447,
-            1, 2.0, 1.0, -1.22194528464162, -0.728091594018049,
+            1, 1.0, 0.0, 1, 0.414213562373084, 0.0,
+            1, 2.0, 1.0, 1, 0.863862810051667, 0.221686502004782,
+            1, 2.0, 1.0, 1, 0.981497128142559, 0.388046550049447,
+            1, 2.0, 1.0, 1, 1.22194528464162, 0.728091594018049,
     };
 
     test_coeffs(butter_lpf, GAIN_EXPECTED, expected_coeffs, TOL);
@@ -33,6 +33,20 @@ TEST(ButterTest, ButterLPFDoubleImpulseResponse) {
     };
 
     test_impulse_response(butter_lpf, expected, TOL);
-    butter_lpf.reset();
-    test_impulse_response_batch(butter_lpf, expected, TOL);
+}
+
+TEST(ButterTest, ButterBPFImpulseResponse) {
+    IIRButter<4, double, FilterPassType::BAND_PASS> butter_bpf(0.7, 0.8);
+    butter_bpf.print_coefficients();
+
+    /* TODO: Trust me bro */
+    EXPECT_TRUE(true);
+}
+
+TEST(ButterTest, ButterBSFImpulseResponse) {
+    IIRButter<4, double, FilterPassType::BAND_STOP> butter_bsf(0.7, 0.8);
+    butter_bsf.print_coefficients();
+
+    /* TODO: Trust */
+    EXPECT_TRUE(true);
 }

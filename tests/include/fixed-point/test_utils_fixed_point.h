@@ -10,7 +10,7 @@ namespace tiny_iir {
 static constexpr double TOL_Q31 = 1e-8;
 
 inline void normalize_coeffs(std::vector<double> &coeffs) {
-    constexpr size_t COEFFICIENTS_PER_BIQUAD_BLOCK = 5;
+    constexpr size_t COEFFICIENTS_PER_BIQUAD_BLOCK = 6;
     const size_t num_of_biquad_blocks = coeffs.size() / COEFFICIENTS_PER_BIQUAD_BLOCK;
 
     for (size_t i = 0; i < num_of_biquad_blocks; ++i) {
