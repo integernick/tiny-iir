@@ -38,8 +38,6 @@ private:
     PoleZeroPair get_pole_zero_pairs_s_plane(unsigned int i) final;
 
     PoleZeroPair get_pole_zero_real_axis() final;
-
-    double _d_phi = 0;
 };
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>
@@ -56,10 +54,9 @@ IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_cutoff_frequency)
     configure(normalized_cutoff_frequency);
 }
 
-
 template<size_t N, typename T, FilterPassType PASS_TYPE>
 PoleZeroPair IIRButter<N, T, PASS_TYPE>::get_pole_zero_pairs_s_plane(unsigned int i) {
-    const double phi = (2 * i + 1) * _d_phi; // Angle from the imaginary axis
+    const double phi = (2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
     const double pole_s_real = -std::sin(phi);
     const double pole_s_imag = std::cos(phi);
     return {{pole_s_real, pole_s_imag},
@@ -75,7 +72,6 @@ PoleZeroPair IIRButter<N, T, PASS_TYPE>::get_pole_zero_real_axis() {
 template<size_t N, typename T, FilterPassType PASS_TYPE>
 void IIRButter<N, T, PASS_TYPE>::init() {
     IIRFilter<N, T, PASS_TYPE>::_gain_double = 1.0;
-    _d_phi = M_PI_2 / N;
 }
 
 }
