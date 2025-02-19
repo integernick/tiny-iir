@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EllipticSolver.h"
+#include "elliptic_utils.h"
 #include "common/IIRFilter.h"
 
 namespace tiny_iir {
@@ -47,13 +47,12 @@ private:
 
     [[nodiscard]] PoleZeroPair get_pole_zero_real_axis() final;
 
-    double _k;
-    EllipticSolver _elliptic_solver_k;
-
-    double _k1;
-    EllipticSolver _elliptic_solver_k1;
+    double _k;  // The ratio w_p / w_s < 1
+    double _k1; // The ratio eps_p / eps_s << 1
 
     double _v0; // Solution of sn(1i*v0*N*K1, k1) = j/eps_p
+    double _r;  // The ratio K_prime / K, where K is the complete elliptic integral of the elliptic modulus
+                // and K_prime is the elliptic integral of complement of the elliptic modulus.
 };
 
 
@@ -93,15 +92,15 @@ IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double no
 template<size_t N, typename T, FilterPassType PASS_TYPE>
 PoleZeroPair IIRElliptic<N, T, PASS_TYPE>::get_pole_zero_pairs_s_plane(unsigned int i) {
     const double u_i = (2.0 * i + 1.0) / N;
-    const double zeta = _elliptic_solver_k.cd(u_i);
+    const double zeta = cd(u_i, _k).real();
     const Complex zero = Complex{0, 1.0 / (_k * zeta)};
-    const Complex pole = IMAG_UNIT * _elliptic_solver_k.cd(u_i - IMAG_UNIT * _v0);
+    const Complex pole = IMAG_UNIT * cd(u_i - IMAG_UNIT * _v0, _k);
     return {pole, zero};
 }
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>
 PoleZeroPair IIRElliptic<N, T, PASS_TYPE>::get_pole_zero_real_axis() {
-    const Complex pole = IMAG_UNIT * _elliptic_solver_k.asn(IMAG_UNIT / _v0);
+    const Complex pole = IMAG_UNIT * asn(IMAG_UNIT / _v0, _k, _r);
     const Complex zero = Complex{IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE, 0};
     return {pole, zero};
 }
@@ -121,16 +120,21 @@ void IIRElliptic<N, T, PASS_TYPE>::init(double pass_ripple_db, double stop_rippl
     const double eps_s = std::sqrt(std::exp(stop_ripple_db * 0.1 * M_LN10) - 1.0);
 
     const double k1 = eps_p / eps_s;
-    _elliptic_solver_k1.init(k1);
-    _k = _elliptic_solver_k1.solve_degree_equation(N);
+
+    // Solution of sn(j*v0*N*K1, k1) = j/eps_p
+    const double K1 = calculate_elliptic_integral(_k1);
+    const double K1_prime = calculate_elliptic_integral(get_complimentary(_k1));
+    const double R1 = K1_prime / K1;
+    const Complex v0 = -IMAG_UNIT * asn(IMAG_UNIT / eps_p, k1, R1) / static_cast<double>(N);
+    _v0 = v0.real();
+
+    _k = solve_degree_equation(N, get_complimentary(k1));
     if (_k > 1.0) {
         return;
     }
-    _elliptic_solver_k.init(_k);
-
-    // Solution of sn(j*v0*N*K1, k1) = j/eps_p
-    Complex v0 = -IMAG_UNIT * _elliptic_solver_k1.asn(IMAG_UNIT / eps_p) / static_cast<double>(N);
-    _v0 = v0.real();
+    const double K = calculate_elliptic_integral(_k);
+    const double K_prime = calculate_elliptic_integral(get_complimentary(_k));
+    _r = K_prime / K;
 }
 
 }
