@@ -41,18 +41,10 @@ private:
     static constexpr size_t L = N / 2;
     static constexpr Complex IMAG_UNIT = Complex{0, 1};
 
-    void init(double pass_ripple_db, double stop_ripple_db);
+    void init_analog() final;
 
-    [[nodiscard]] PoleZeroPair get_pole_zero_pairs_s_plane(unsigned int i) final;
-
-    [[nodiscard]] PoleZeroPair get_pole_zero_real_axis() final;
-
-    double _k;  // The ratio w_p / w_s < 1
-    double _k1; // The ratio eps_p / eps_s << 1
-
-    double _v0; // Solution of sn(1i*v0*N*K1, k1) = j/eps_p
-    double _r;  // The ratio K_prime / K, where K is the complete elliptic integral of the elliptic modulus
-                // and K_prime is the elliptic integral of complement of the elliptic modulus.
+    double _pass_ripple_db = 0;
+    double _stop_ripple_db = 0;
 };
 
 
@@ -76,7 +68,13 @@ template<size_t N, typename T, FilterPassType PASS_TYPE>
 template<FilterPassType _PT, typename>
 void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency,
                                              double pass_ripple_db, double stop_ripple_db) {
-    init(pass_ripple_db, stop_ripple_db);
+    pass_ripple_db = std::abs(pass_ripple_db);
+    stop_ripple_db = std::abs(stop_ripple_db);
+    if (pass_ripple_db != _pass_ripple_db || stop_ripple_db != _stop_ripple_db) {
+        _pass_ripple_db = pass_ripple_db;
+        _stop_ripple_db = stop_ripple_db;
+        init_analog();
+    }
     IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_cutoff_frequency);
 }
 
@@ -85,56 +83,56 @@ template<FilterPassType _PT, typename>
 void
 IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double normalized_highcut_freq,
                                         double pass_ripple_db, double stop_ripple_db) {
-    init(pass_ripple_db, stop_ripple_db);
+    pass_ripple_db = std::abs(pass_ripple_db);
+    stop_ripple_db = std::abs(stop_ripple_db);
+    if (pass_ripple_db != _pass_ripple_db || stop_ripple_db != _stop_ripple_db) {
+        _pass_ripple_db = pass_ripple_db;
+        _stop_ripple_db = stop_ripple_db;
+        init_analog();
+    }
     IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
 }
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>
-PoleZeroPair IIRElliptic<N, T, PASS_TYPE>::get_pole_zero_pairs_s_plane(unsigned int i) {
-    const double u_i = (2.0 * i + 1.0) / N;
-    const double zeta = cd(u_i, _k).real();
-    const Complex zero = Complex{0, 1.0 / (_k * zeta)};
-    const Complex pole = IMAG_UNIT * cd(u_i - IMAG_UNIT * _v0, _k);
-    return {pole, zero};
-}
-
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-PoleZeroPair IIRElliptic<N, T, PASS_TYPE>::get_pole_zero_real_axis() {
-    const Complex pole = IMAG_UNIT * asn(IMAG_UNIT / _v0, _k, _r);
-    const Complex zero = Complex{IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE, 0};
-    return {pole, zero};
-}
-
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-void IIRElliptic<N, T, PASS_TYPE>::init(double pass_ripple_db, double stop_ripple_db) {
-    pass_ripple_db = std::abs(pass_ripple_db);
-    stop_ripple_db = std::abs(stop_ripple_db);
-
+void IIRElliptic<N, T, PASS_TYPE>::init_analog() {
     if constexpr (N & 1) {
         IIRFilter<N, T, PASS_TYPE>::_gain_double = 1.0;
     } else {
-        IIRFilter<N, T, PASS_TYPE>::_gain_double = std::exp(-pass_ripple_db / 20 * M_LN10);
+        IIRFilter<N, T, PASS_TYPE>::_gain_double = std::exp(-_pass_ripple_db / 20 * M_LN10);
     }
 
-    const double eps_p = std::sqrt(std::exp(pass_ripple_db * 0.1 * M_LN10) - 1.0);
-    const double eps_s = std::sqrt(std::exp(stop_ripple_db * 0.1 * M_LN10) - 1.0);
+    const double eps_p = std::sqrt(std::exp(_pass_ripple_db * 0.1 * M_LN10) - 1.0);
+    const double eps_s = std::sqrt(std::exp(_stop_ripple_db * 0.1 * M_LN10) - 1.0);
 
-    const double k1 = eps_p / eps_s;
+    const double k1 = eps_p / eps_s; // The ratio (eps_p / eps_s) << 1
 
     // Solution of sn(j*v0*N*K1, k1) = j/eps_p
-    const double K1 = calculate_elliptic_integral(_k1);
-    const double K1_prime = calculate_elliptic_integral(get_complimentary(_k1));
+    const double K1 = calculate_elliptic_integral(k1);
+    const double K1_prime = calculate_elliptic_integral(get_complimentary(k1));
     const double R1 = K1_prime / K1;
-    const Complex v0 = -IMAG_UNIT * asn(IMAG_UNIT / eps_p, k1, R1) / static_cast<double>(N);
-    _v0 = v0.real();
+    const Complex v0_c = -IMAG_UNIT * asn(IMAG_UNIT / eps_p, k1, R1) / static_cast<double>(N);
+    const double v0 = v0_c.real();
 
-    _k = solve_degree_equation(N, get_complimentary(k1));
-    if (_k > 1.0) {
+    const double k = solve_degree_equation(N, get_complimentary(k1)); // The ratio (w_p / w_s) < 1
+    if (k > 1.0) {
         return;
     }
-    const double K = calculate_elliptic_integral(_k);
-    const double K_prime = calculate_elliptic_integral(get_complimentary(_k));
-    _r = K_prime / K;
+    const double K = calculate_elliptic_integral(k);
+    const double K_prime = calculate_elliptic_integral(get_complimentary(k));
+    const double R = K_prime / K;
+
+    if constexpr (N & 1) {
+        const Complex pole = IMAG_UNIT * asn(IMAG_UNIT / v0, k, R);
+        const Complex zero = Complex{IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE, 0};
+        IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
+    }
+    for (int i = 0; i < N / 2; ++i) {
+        const double u_i = (2.0 * i + 1.0) / N;
+        const double zeta = cd(u_i, k).real();
+        const Complex zero = Complex{0, 1.0 / (k * zeta)};
+        const Complex pole = IMAG_UNIT * cd(u_i - IMAG_UNIT * v0, k);
+        IIRElliptic<N, T, PASS_TYPE>::_analog_pole_zero_pairs[i] = {pole, zero};
+    }
 }
 
 }

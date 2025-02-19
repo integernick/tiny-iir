@@ -175,10 +175,81 @@ public:
         static constexpr size_t CASCADE_ORDER = 2 * N;
 
     private:
-        double _w0, _bw;
+        double _w0;
+        double _bw;
         Complex _mapped_infinity_value;
     };
 
+    template<FilterPassType>
+    struct PassTypeFrequencyData;
+
+    template<>
+    struct PassTypeFrequencyData<FilterPassType::LOW_PASS> {
+        PassTypeFrequencyData() = default;     // default constructor for no init
+        explicit PassTypeFrequencyData(double cutoff)
+                : _normalized_cutoff_frequency(cutoff) {
+        }
+
+        double _normalized_cutoff_frequency;
+
+        // Optional floating-point comparison:
+        bool operator==(const PassTypeFrequencyData &other) const {
+            // Compare with a small epsilon to avoid floating‐point rounding issues.
+            constexpr double EPS = 1e-15;
+            return std::fabs(_normalized_cutoff_frequency - other._normalized_cutoff_frequency) < EPS;
+        }
+    };
+
+    template<>
+    struct PassTypeFrequencyData<FilterPassType::HIGH_PASS> {
+        PassTypeFrequencyData() = default;
+
+        explicit PassTypeFrequencyData(double cutoff)
+                : _normalized_cutoff_frequency(cutoff) {}
+
+        double _normalized_cutoff_frequency;
+
+        bool operator==(const PassTypeFrequencyData &other) const {
+            constexpr double EPS = 1e-15;
+            return std::fabs(_normalized_cutoff_frequency - other._normalized_cutoff_frequency) < EPS;
+        }
+    };
+
+    template<>
+    struct PassTypeFrequencyData<FilterPassType::BAND_PASS> {
+        PassTypeFrequencyData() = default;
+
+        PassTypeFrequencyData(double low, double high)
+                : _normalized_lowcut_frequency(low),
+                  _normalized_highcut_frequency(high) {}
+
+        double _normalized_lowcut_frequency;
+        double _normalized_highcut_frequency;
+
+        bool operator==(const PassTypeFrequencyData &other) const {
+            constexpr double EPS = 1e-15;
+            return std::fabs(_normalized_lowcut_frequency - other._normalized_lowcut_frequency) < EPS
+                   && std::fabs(_normalized_highcut_frequency - other._normalized_highcut_frequency) < EPS;
+        }
+    };
+
+    template<>
+    struct PassTypeFrequencyData<FilterPassType::BAND_STOP> {
+        PassTypeFrequencyData() = default;
+
+        PassTypeFrequencyData(double low, double high)
+                : _normalized_lowcut_frequency(low),
+                  _normalized_highcut_frequency(high) {}
+
+        double _normalized_lowcut_frequency;
+        double _normalized_highcut_frequency;
+
+        bool operator==(const PassTypeFrequencyData &other) const {
+            constexpr double EPS = 1e-15;
+            return std::fabs(_normalized_lowcut_frequency - other._normalized_lowcut_frequency) < EPS
+                   && std::fabs(_normalized_highcut_frequency - other._normalized_highcut_frequency) < EPS;
+        }
+    };
 
     template<typename U>
     [[nodiscard]] T process(U x);
@@ -203,32 +274,35 @@ public:
 
     void reset();
 
-    virtual PoleZeroPair get_pole_zero_pairs_s_plane(unsigned int i) = 0;
-
-    virtual PoleZeroPair get_pole_zero_real_axis() = 0;
-
     static constexpr size_t ORDER = N;
 
 protected:
     virtual ~IIRFilter() = default;
 
+    virtual void init_analog() = 0;
+
     template<FilterPassType _PT = PASS_TYPE,
             typename = std::enable_if_t<(_PT == FilterPassType::LOW_PASS
                                          || _PT == FilterPassType::HIGH_PASS)>>
     void calculate_cascades(double normalized_cutoff_frequency) {
-        _cascade_filter.reset();
+        if (PassTypeFrequencyData<PASS_TYPE>(normalized_cutoff_frequency) == _pass_type_frequency_data) {
+            return;
+        }
+        _pass_type_frequency_data = PassTypeFrequencyData<PASS_TYPE>(normalized_cutoff_frequency);
 
+        _cascade_filter.reset();
         _pass_type_data.init(normalized_cutoff_frequency);
 
         // Start from the lowest Q factor pole (closest to the real axis)
         if constexpr (N & 1) {
-            PoleZeroPair pole_zero_pair = get_pole_zero_real_axis();
+            PoleZeroPair pole_zero_pair = _analog_pole_zero_pairs[(N + 1) / 2 - 1];
             pole_zero_pair.pole = _pass_type_data.transform(pole_zero_pair.pole);
             pole_zero_pair.zero = _pass_type_data.transform(pole_zero_pair.zero);
             add_pole_zero_single_pair(pole_zero_pair);
         }
-        for (int i = static_cast<int>(N) / 2 - 1; i >= 0; --i) {
-            PoleZeroPair pole_zero_pair = get_pole_zero_pairs_s_plane(i);
+        // Start from the lowest Q factor pole (closest to the real axis)
+        for (int i = static_cast<int>(N / 2) - 1; i >= 0; --i) {
+            PoleZeroPair pole_zero_pair = _analog_pole_zero_pairs[i];
             pole_zero_pair.pole = _pass_type_data.transform(pole_zero_pair.pole);
             pole_zero_pair.zero = _pass_type_data.transform(pole_zero_pair.zero);
             add_pole_zero_conjugates_pair(pole_zero_pair);
@@ -242,6 +316,11 @@ protected:
             typename = std::enable_if_t<(_PT == FilterPassType::BAND_PASS
                                          || _PT == FilterPassType::BAND_STOP)>>
     void calculate_cascades(double cutlow_freq, double cuthigh_freq) {
+        if (PassTypeFrequencyData<PASS_TYPE>(cutlow_freq, cuthigh_freq) == _pass_type_frequency_data) {
+            return;
+        }
+        _pass_type_frequency_data = PassTypeFrequencyData<PASS_TYPE>(cutlow_freq, cuthigh_freq);
+
         _cascade_filter.reset();
 
         constexpr double MIN_FREQ = 1e-8;
@@ -267,7 +346,7 @@ protected:
         };
 
         if constexpr (N & 1) {
-            const PoleZeroPair pole_zero_pair = get_pole_zero_real_axis();
+            const PoleZeroPair &pole_zero_pair = _analog_pole_zero_pairs[(N + 1) / 2 - 1];
             auto [pole1, pole2] = _pass_type_data.transform(pole_zero_pair.pole);
             auto [zero1, zero2] = _pass_type_data.transform(pole_zero_pair.zero);
 
@@ -276,9 +355,8 @@ protected:
             add_pole_zero_pairs({pz1, pz2});
         }
         // Start from the lowest Q factor pole (closest to the real axis)
-        for (int i = static_cast<int>(N) / 2 - 1; i >= 0; --i) {
-            PoleZeroPair pole_zero_pair = get_pole_zero_pairs_s_plane(i);
-            add_two_pole_zero_pairs_from_one(pole_zero_pair);
+        for (int i = static_cast<int>(N / 2) - 1; i >= 0; --i) {
+            add_two_pole_zero_pairs_from_one(_analog_pole_zero_pairs[i]);
         }
 
         _cascade_filter.set_gain(_gain_double);
@@ -290,6 +368,9 @@ protected:
     CascadeFilter<PassTypeData<PASS_TYPE>::CASCADE_ORDER, T> _cascade_filter;
     double _gain_double = 1.0;
 
+    // Pole/zero pairs without the conjugates (last one is the pair with pole on the real axis)
+    PoleZeroPair _analog_pole_zero_pairs[(N + 1) / 2];
+
 private:
     void add_biquad_coefficients(double b0, double b1, double b2, double a1, double a2);
 
@@ -300,6 +381,7 @@ private:
     void add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs);
 
     PassTypeData<PASS_TYPE> _pass_type_data;
+    PassTypeFrequencyData<PASS_TYPE> _pass_type_frequency_data;
 };
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>

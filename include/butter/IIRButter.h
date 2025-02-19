@@ -20,7 +20,7 @@ public:
             typename = std::enable_if_t<(_PT == FilterPassType::LOW_PASS
                                          || _PT == FilterPassType::HIGH_PASS)>>
     void configure(double normalized_cutoff_frequency) {
-        init();
+        init_analog();
         IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_cutoff_frequency);
     }
 
@@ -28,16 +28,12 @@ public:
             typename = std::enable_if_t<(_PT == FilterPassType::BAND_PASS
                                          || _PT == FilterPassType::BAND_STOP)>>
     void configure(double normalized_lowcut_freq, double normalized_highcut_freq) {
-        init();
+        init_analog();
         IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
     }
 
 private:
-    void init();
-
-    PoleZeroPair get_pole_zero_pairs_s_plane(unsigned int i) final;
-
-    PoleZeroPair get_pole_zero_real_axis() final;
+    void init_analog();
 };
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>
@@ -55,23 +51,25 @@ IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_cutoff_frequency)
 }
 
 template<size_t N, typename T, FilterPassType PASS_TYPE>
-PoleZeroPair IIRButter<N, T, PASS_TYPE>::get_pole_zero_pairs_s_plane(unsigned int i) {
-    const double phi = (2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
-    const double pole_s_real = -std::sin(phi);
-    const double pole_s_imag = std::cos(phi);
-    return {{pole_s_real, pole_s_imag},
-            {IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE, 0}};
-}
-
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-PoleZeroPair IIRButter<N, T, PASS_TYPE>::get_pole_zero_real_axis() {
-    return {-1.0,
-            IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE};
-}
-
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-void IIRButter<N, T, PASS_TYPE>::init() {
+void IIRButter<N, T, PASS_TYPE>::init_analog() {
     IIRFilter<N, T, PASS_TYPE>::_gain_double = 1.0;
+
+    if constexpr (N & 1) {
+        IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {
+                -1.0,
+                IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE
+        };
+    }
+
+    for (size_t i = 0; i < N / 2; ++i) {
+        const double phi = static_cast<double>(2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
+        const double pole_s_real = -std::sin(phi);
+        const double pole_s_imag = std::cos(phi);
+        IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[i] = {
+                {pole_s_real, pole_s_imag},
+                {IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE, 0}
+        };
+    }
 }
 
 }

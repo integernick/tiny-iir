@@ -8,7 +8,6 @@ constexpr double TOL = 1e-3; // Coefficients are not an exact match to MATLAB, b
 
 TEST(EllipticTest, EllipticLPFCoeffs) {
     IIRElliptic<5, double> lpf_elliptic(0.75, 0.05, 40.0);
-    lpf_elliptic.print_coefficients();
 
     constexpr double GAIN_EXPECTED = 0.358219308431662;
     std::vector<double> expected_coeffs = {

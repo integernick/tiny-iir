@@ -1,6 +1,5 @@
 file(GLOB COMMON_TEST_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/common/test_*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/elliptic/test_*.cpp
 )
 
 set(TEST_SOURCES ${COMMON_TEST_SOURCES})
