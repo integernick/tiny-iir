@@ -1,6 +1,6 @@
 #pragma once
 
-#include <utils.h>
+#include <type_utils.h>
 #include <CascadeFilter.h>
 
 #include <gtest/gtest.h>
@@ -10,10 +10,10 @@ namespace tiny_iir {
 static constexpr double TOL_Q31 = 1e-8;
 
 inline void normalize_coeffs(std::vector<double> &coeffs) {
-    constexpr size_t COEFFICIENTS_PER_BIQUAD_BLOCK = 6;
-    const size_t num_of_biquad_blocks = coeffs.size() / COEFFICIENTS_PER_BIQUAD_BLOCK;
+    constexpr uint32_t COEFFICIENTS_PER_BIQUAD_BLOCK = 6;
+    const uint32_t num_of_biquad_blocks = coeffs.size() / COEFFICIENTS_PER_BIQUAD_BLOCK;
 
-    for (size_t i = 0; i < num_of_biquad_blocks; ++i) {
+    for (uint32_t i = 0; i < num_of_biquad_blocks; ++i) {
         std::span<double> biquad_coeffs(coeffs.begin() + i * COEFFICIENTS_PER_BIQUAD_BLOCK,
                                         COEFFICIENTS_PER_BIQUAD_BLOCK);
 

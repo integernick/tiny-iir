@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common/utils.h>
+#include <common/common_utils.h>
 
 namespace tiny_iir {
 
@@ -96,7 +96,7 @@ static constexpr uint32_t NUM_OF_LANDEN_ITERATIONS = 5;
  */
 static void init_landen_sequence(double *seq, double k) {
     seq[0] = landen_next(k);
-    for (int i = 1; i < NUM_OF_LANDEN_ITERATIONS; ++i) {
+    for (uint32_t i = 1; i < NUM_OF_LANDEN_ITERATIONS; ++i) {
         seq[i] = landen_next(seq[i - 1]);
     }
 }
@@ -143,7 +143,7 @@ static void init_landen_sequence(double *seq, double k) {
     const uint32_t L = N / 2;
     double k_prime = std::pow(k1_prime, N);
 
-    for (int i = 0; i < L; ++i) {
+    for (uint32_t i = 0; i < L; ++i) {
         const double u_i = (2.0 * i + 1.0) / N;
         const double sn_val = sn(u_i, k1_prime).real();
         k_prime *= sn_val;
@@ -166,7 +166,7 @@ static void init_landen_sequence(double *seq, double k) {
     double v_prev;  // v_{n-1}
     double v_n = k; // v_{n}
 
-    for (int i = 0; i < NUM_OF_LANDEN_ITERATIONS; ++i) {
+    for (uint32_t i = 0; i < NUM_OF_LANDEN_ITERATIONS; ++i) {
         v_prev = v_n;
         v_n = landen_next(v_n);
         w = w / (1.0 + std::sqrt(1.0 - w * w * v_prev * v_prev)) * 2.0 / (1.0 + v_n);
