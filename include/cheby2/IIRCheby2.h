@@ -3,7 +3,7 @@
 #include "common/IIRFilter.h"
 
 namespace tiny_iir {
-template<size_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
+template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
 class IIRCheby2 : public IIRFilter<N, T, PASS_TYPE> {
 public:
     template<FilterPassType _PT = PASS_TYPE,
@@ -33,14 +33,14 @@ private:
 };
 
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<FilterPassType _PT, typename>
 IIRCheby2<N, T, PASS_TYPE>::IIRCheby2(double normalized_cutoff_frequency, double stopband_ripple_db)
         : IIRFilter<N, T, PASS_TYPE>() {
     configure(normalized_cutoff_frequency, stopband_ripple_db);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<FilterPassType _PT, typename>
 IIRCheby2<N, T, PASS_TYPE>::IIRCheby2(double normalized_lowcut_freq, double normalized_highcut_freq,
                                       double stopband_ripple_db)
@@ -48,7 +48,7 @@ IIRCheby2<N, T, PASS_TYPE>::IIRCheby2(double normalized_lowcut_freq, double norm
     configure(normalized_lowcut_freq, normalized_highcut_freq, stopband_ripple_db);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<FilterPassType _PT, typename>
 void IIRCheby2<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency, double stopband_ripple_db) {
     stopband_ripple_db = std::abs(stopband_ripple_db);
@@ -59,7 +59,7 @@ void IIRCheby2<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency, d
     IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_cutoff_frequency);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<FilterPassType _PT, typename>
 void
 IIRCheby2<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double normalized_highcut_freq,
@@ -72,7 +72,7 @@ IIRCheby2<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double norm
     IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 void IIRCheby2<N, T, PASS_TYPE>::init_analog() {
     IIRFilter<N, T, PASS_TYPE>::_cascade_filter.set_gain(1.0);
 
@@ -88,7 +88,7 @@ void IIRCheby2<N, T, PASS_TYPE>::init_analog() {
         };
     }
 
-    for (size_t i = 0; i < N / 2; ++i) {
+    for (uint32_t i = 0; i < N / 2; ++i) {
         const double phi = static_cast<double>(2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
         const double sin_phi = std::sin(phi);
         const double cos_phi = std::cos(phi);

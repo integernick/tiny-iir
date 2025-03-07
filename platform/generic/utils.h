@@ -6,7 +6,7 @@
 namespace tiny_iir {
 
 template<typename T>
-static void to_double(const T *x, double *x_double, size_t num_samples) {
+static void to_double(const T *x, double *x_double, uint32_t num_samples) {
     if constexpr (std::is_same<T, float>::value) {
         std::transform(x, x + num_samples, x_double, [](float sample) {
             return static_cast<double>(sample);

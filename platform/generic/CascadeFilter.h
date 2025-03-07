@@ -77,16 +77,11 @@ public:
 
     void reset() {
         _num_biquad_blocks_set = 0;
-        memset(_coefficients, 0, sizeof(_coefficients));
         reset_state();
     }
 
     [[nodiscard]] T get_gain() const {
         return _gain;
-    }
-
-    [[nodiscard]] int get_number_of_blocks() const {
-        return _num_biquad_blocks_set;
     }
 
     void set_gain(double gain) {
