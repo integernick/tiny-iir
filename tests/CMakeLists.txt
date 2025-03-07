@@ -17,6 +17,8 @@ target_include_directories(tiny_iir_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include/common
 )
 
+add_compile_definitions(CASCADE_FILTER_DEBUG=1)
+
 if(BUILD_FOR_ARM)
     target_include_directories(tiny_iir_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/../platform/arm

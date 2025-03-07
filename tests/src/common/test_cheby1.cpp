@@ -7,14 +7,22 @@ using namespace tiny_iir;
 constexpr double TOL = TOL_DOUBLE;
 
 TEST(Cheby1Test, Cheby1LPFDoubleCoeffs) {
-    IIRCheby1<1, double> cheby1_lpf_double(0.75, 0.1);
+    IIRCheby1<1, double> cheby1_lpf(0.75, 0.1);
+    double GAIN_EXPECTED = 0.940541375070859;
+    std::vector<double> expected_coeffs = {
+            1.0, 1.0, 0.0, 1.0, 0.881082750141717, 0.0
+    };
+    test_coeffs(cheby1_lpf, GAIN_EXPECTED, expected_coeffs, TOL);
 
-    constexpr double GAIN_EXPECTED = 0.940541375070859;
-    const std::vector<double> expected_coeffs = {
-            1.0, 1.0, 0.0, 1, 0.881082750141717, 0.0
+
+    IIRCheby1<4, double> cheby1_lpf_order_4(0.5, 0.3);
+    GAIN_EXPECTED = 0.0765461714674103;
+    expected_coeffs = {
+            1, 2.0, 1.0, 1.0, -0.47674363011616, 0.186488199316368,
+            1, 2.0, 1.0, 1.0, 0.105420579500914, 0.680825869653555
     };
 
-    test_coeffs(cheby1_lpf_double, GAIN_EXPECTED, expected_coeffs, TOL);
+    test_coeffs(cheby1_lpf_order_4, GAIN_EXPECTED, expected_coeffs, TOL);
 }
 
 TEST(Cheby1Test, Cheby1LPFDoubleImpulseResponse) {
@@ -30,6 +38,7 @@ TEST(Cheby1Test, Cheby1LPFDoubleImpulseResponse) {
     test_impulse_response(cheby1_lpf, expected_impulse_response, TOL);
 
     cheby1_lpf.configure(0.7, 0.1);
+    cheby1_lpf.reset_state(); // Resets filter state
     expected_impulse_response = {
             0.28752684851852, 0.682626808501851, 0.210378973651761, -0.300402215664622,
             0.0993629445718004, 0.0802308147374734, -0.139353842738623, 0.0951387939121066,
