@@ -12,35 +12,73 @@ namespace tiny_iir {
  * @tparam T   Data type.
  * @tparam PASS_TYPE   Pass type (low, high).
  */
-template<size_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
+template<uint32_t N = 2,
+        typename T = double,
+        FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
 class IIRElliptic : public IIRFilter<N, T, PASS_TYPE> {
 public:
-    template<FilterPassType _PT = PASS_TYPE,
-            typename = std::enable_if_t<(_PT == FilterPassType::LOW_PASS
-                                         || _PT == FilterPassType::HIGH_PASS)>>
-    IIRElliptic(double normalized_cutoff_frequency, double pass_ripple_db, double stop_ripple_db);
+    /**
+     * @brief   Constructor.
+     *
+     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     */
+    template<FilterPassType PT = PASS_TYPE,
+            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
+                                         || PT == FilterPassType::HIGH_PASS)>>
+    IIRElliptic(double normalized_cutoff_frequency, double pass_ripple_db, double stop_ripple_db,
+                uint32_t crossfade_samples = 0);
 
-    template<FilterPassType _PT = PASS_TYPE,
-            typename = std::enable_if_t<(_PT == FilterPassType::BAND_PASS
-                                         || _PT == FilterPassType::BAND_STOP)>>
+    /**
+     * @brief   Constructor.
+     *
+     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     */
+    template<FilterPassType PT = PASS_TYPE,
+            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
+                                         || PT == FilterPassType::BAND_STOP)>>
     IIRElliptic(double normalized_lowcut_freq, double normalized_highcut_freq,
-                double pass_ripple_db, double stop_ripple_db);
+                double pass_ripple_db, double stop_ripple_db, uint32_t crossfade_samples = 0);
 
-    template<FilterPassType _PT = PASS_TYPE,
-            typename = std::enable_if_t<(_PT == FilterPassType::LOW_PASS
-                                         || _PT == FilterPassType::HIGH_PASS)>>
+    /**
+     * @brief   Configure the filter.
+     *
+     * @param normalized_cutoff_frequency  Normalized cutoff frequency.
+     * @param pass_ripple_db  Passband ripple in dB.
+     * @param stop_ripple_db  Stopband ripple in dB.
+     */
+    template<FilterPassType PT = PASS_TYPE,
+            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
+                                         || PT == FilterPassType::HIGH_PASS)>>
     void configure(double normalized_cutoff_frequency, double pass_ripple_db, double stop_ripple_db);
 
-    template<FilterPassType _PT = PASS_TYPE,
-            typename = std::enable_if_t<(_PT == FilterPassType::BAND_PASS
-                                         || _PT == FilterPassType::BAND_STOP)>>
+    /**
+     * @brief   Configure the filter.
+     *
+     * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
+     * @param pass_ripple_db  Passband ripple in dB.
+     * @param stop_ripple_db  Stopband ripple in dB.
+     */
+    template<FilterPassType PT = PASS_TYPE,
+            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
+                                         || PT == FilterPassType::BAND_STOP)>>
     void configure(double normalized_lowcut_freq, double normalized_highcut_freq,
                    double pass_ripple_db, double stop_ripple_db);
 
 private:
-    static constexpr size_t L = N / 2;
+    static constexpr uint32_t L = N / 2;
     static constexpr Complex IMAG_UNIT = Complex{0, 1};
 
+    /**
+     * @brief   Get the analog gain.
+     *
+     * @return  The analog gain.
+     */
+    [[nodiscard]] double get_analog_gain() const final;
+
+    /**
+     * @brief   Initialize analog filter poles and zeros.
+     */
     void init_analog() final;
 
     double _pass_ripple_db = 0;
@@ -48,24 +86,24 @@ private:
 };
 
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType _PT, typename>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+template<FilterPassType PT, typename>
 IIRElliptic<N, T, PASS_TYPE>::IIRElliptic(double normalized_cutoff_frequency, double pass_ripple_db,
-                                          double stop_ripple_db)
-        : IIRFilter<N, T, PASS_TYPE>() {
+                                          double stop_ripple_db, uint32_t crossfade_samples)
+        : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
     configure(normalized_cutoff_frequency, pass_ripple_db, stop_ripple_db);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType _PT, typename>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+template<FilterPassType PT, typename>
 IIRElliptic<N, T, PASS_TYPE>::IIRElliptic(double normalized_lowcut_freq, double normalized_highcut_freq,
-                                          double pass_ripple_db, double stop_ripple_db)
-        : IIRFilter<N, T, PASS_TYPE>() {
+                                          double pass_ripple_db, double stop_ripple_db, uint32_t crossfade_samples)
+        : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
     configure(normalized_lowcut_freq, normalized_highcut_freq, pass_ripple_db, stop_ripple_db);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType _PT, typename>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+template<FilterPassType PT, typename>
 void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency,
                                              double pass_ripple_db, double stop_ripple_db) {
     pass_ripple_db = std::abs(pass_ripple_db);
@@ -78,10 +116,11 @@ void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency,
     IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_cutoff_frequency);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType _PT, typename>
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+template<FilterPassType PT, typename>
 void
-IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double normalized_highcut_freq,
+IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq,
+                                                           double normalized_highcut_freq,
                                         double pass_ripple_db, double stop_ripple_db) {
     pass_ripple_db = std::abs(pass_ripple_db);
     stop_ripple_db = std::abs(stop_ripple_db);
@@ -93,14 +132,17 @@ IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double no
     IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
 }
 
-template<size_t N, typename T, FilterPassType PASS_TYPE>
-void IIRElliptic<N, T, PASS_TYPE>::init_analog() {
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+double IIRElliptic<N, T, PASS_TYPE>::get_analog_gain() const {
     if constexpr (N & 1) {
-        IIRFilter<N, T, PASS_TYPE>::_gain_double = 1.0;
+        return 1.0;
     } else {
-        IIRFilter<N, T, PASS_TYPE>::_gain_double = std::exp(-_pass_ripple_db / 20 * M_LN10);
+        return std::exp(-_pass_ripple_db / 20 * M_LN10);
     }
+}
 
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+void IIRElliptic<N, T, PASS_TYPE>::init_analog() {
     const double eps_p = std::sqrt(std::exp(_pass_ripple_db * 0.1 * M_LN10) - 1.0);
     const double eps_s = std::sqrt(std::exp(_stop_ripple_db * 0.1 * M_LN10) - 1.0);
 
@@ -114,19 +156,22 @@ void IIRElliptic<N, T, PASS_TYPE>::init_analog() {
     const double v0 = v0_c.real();
 
     const double k = solve_degree_equation(N, get_complimentary(k1)); // The ratio (w_p / w_s) < 1
+
     if (k > 1.0) {
         return;
     }
+
     const double K = calculate_elliptic_integral(k);
     const double K_prime = calculate_elliptic_integral(get_complimentary(k));
     const double R = K_prime / K;
 
     if constexpr (N & 1) {
         const Complex pole = IMAG_UNIT * asn(IMAG_UNIT / v0, k, R);
-        const Complex zero = Complex{IIRFilter<N, T, PASS_TYPE>::INFINITY_VALUE, 0};
+        const Complex zero = Complex{INFINITY_VALUE, 0};
         IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
     }
-    for (int i = 0; i < N / 2; ++i) {
+
+    for (uint32_t i = 0; i < N / 2; ++i) {
         const double u_i = (2.0 * i + 1.0) / N;
         const double zeta = cd(u_i, k).real();
         const Complex zero = Complex{0, 1.0 / (k * zeta)};

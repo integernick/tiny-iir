@@ -32,5 +32,5 @@ TEST(Cheby2Test, Cheby2HPFQ31Coeffs) {
     };
     normalize_coeffs(expected_coeffs);
 
-    test_coeffs(cheby2_hpf, GAIN_EXPECTED, expected_coeffs, TOL_DOUBLE);
+    test_coeffs(cheby2_hpf, GAIN_EXPECTED, expected_coeffs, TOL);
 }

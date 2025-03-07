@@ -1,10 +1,12 @@
 #pragma once
 
+#include <common/common_utils.h>
+
 #include "BiquadBlock.h"
 
 #include <array>
 
-#define CASCADE_FILTER_DEBUG    1
+#define CASCADE_FILTER_DEBUG    0
 #if CASCADE_FILTER_DEBUG > 0
 
 #include <iostream>
@@ -49,16 +51,17 @@ public:
 
 #endif
 
-    bool push_biquad_coefficients(double b0, double b1, double b2, double a1, double a2) {
+    bool push_biquad_coefficients(const BiquadCoefficients &biquad_coefficients) {
         if (_num_biquad_blocks_set >= NUMBER_OF_BIQUAD_BLOCKS) {
             return false;
         }
+
         T *current_coefficients_block = &_coefficients[_num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK];
-        current_coefficients_block[0] = static_cast<T>(b0);
-        current_coefficients_block[1] = static_cast<T>(b1);
-        current_coefficients_block[2] = static_cast<T>(b2);
-        current_coefficients_block[3] = static_cast<T>(-a1);
-        current_coefficients_block[4] = static_cast<T>(-a2);
+        current_coefficients_block[0] = static_cast<T>(biquad_coefficients.b0);
+        current_coefficients_block[1] = static_cast<T>(biquad_coefficients.b1);
+        current_coefficients_block[2] = static_cast<T>(biquad_coefficients.b2);
+        current_coefficients_block[3] = static_cast<T>(-biquad_coefficients.a1);
+        current_coefficients_block[4] = static_cast<T>(-biquad_coefficients.a2);
         _num_biquad_blocks_set++;
         return true;
     }
@@ -77,7 +80,6 @@ public:
 
     void reset() {
         _num_biquad_blocks_set = 0;
-        memset(_coefficients, 0, sizeof(_coefficients));
         reset_state();
     }
 
@@ -85,12 +87,8 @@ public:
         return _gain;
     }
 
-    [[nodiscard]] int get_number_of_blocks() const {
-        return _num_biquad_blocks_set;
-    }
-
     void set_gain(double gain) {
-        if constexpr (std::is_same<T, double>::value) {
+        if constexpr (std::is_same_v<T, double>) {
             _gain = gain;
         } else {
             to_native(&gain, &_gain, 1);

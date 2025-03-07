@@ -36,7 +36,6 @@ TEST(Cheby2Test, Cheby2HPFDoubleCoeffs) {
 
 TEST(Cheby2Test, Cheby2BPFImpulseResponse) {
     IIRCheby2<13, double, FilterPassType::BAND_PASS> cheby2_bpf(0.05, 0.35, 30.0);
-    cheby2_bpf.print_coefficients();
 
     /* TODO: Trust me bro */
     EXPECT_TRUE(true);
@@ -44,7 +43,6 @@ TEST(Cheby2Test, Cheby2BPFImpulseResponse) {
 
 TEST(Cheby2Test, Cheby2BSFImpulseResponse) {
     IIRCheby2<13, double, FilterPassType::BAND_STOP> cheby2_bsf(0.05, 0.35, 30.0);
-    cheby2_bsf.print_coefficients();
 
     /* TODO: Trust */
     EXPECT_TRUE(true);
