@@ -6,7 +6,6 @@
 
 #include <array>
 
-#define CASCADE_FILTER_DEBUG    0
 #if CASCADE_FILTER_DEBUG > 0
 
 #include <iostream>
@@ -15,119 +14,70 @@
 #endif
 
 namespace tiny_iir {
-template<unsigned int ORDER, typename T = double,
-        class BiquadBlockDirectForm = BiquadBlockDF1<T>>
-class CascadeFilter {
-public:
-    static constexpr unsigned int NUMBER_OF_BIQUAD_BLOCKS = (ORDER + 1) / 2;
-    static constexpr unsigned int COEFFICIENTS_PER_BIQUAD_BLOCK = 5;
-    static constexpr unsigned int NUMBER_OF_COEFFICIENTS
-            = NUMBER_OF_BIQUAD_BLOCKS * COEFFICIENTS_PER_BIQUAD_BLOCK;
 
-    [[nodiscard]] const T *get_coefficients() const {
-        return _coefficients;
+template<typename>
+struct BiquadCascade;
+
+/**
+ * @brief   Biquad cascade for float native type.
+ */
+template<typename T = double>
+struct BiquadCascade {
+    using type = BiquadBlockDF2TCascade<T>;
+
+    /**
+     * @brief   Initialize the biquad cascade filter.
+     *
+     * @param cascade  The filter instance.
+     * @param num_stages  The number of stages.
+     * @param coefficients  The coefficients array.
+     * @param delay_pipeline  The delay pipeline array.
+     */
+    static void init(type *cascade,
+                     uint8_t num_stages,
+                     T *coefficients,
+                     T *delay_pipeline) {
+        biquad_cascade_init(cascade, num_stages, coefficients, delay_pipeline);
     }
 
-#if CASCADE_FILTER_DEBUG > 0
-
-    void print_coefficients() const {
-        double gain_double;
-        to_double(&_gain, &gain_double, 1);
-        std::cout << std::setprecision(15) << "gain: " << gain_double << std::endl;
-        for (int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
-            double biquad_coefficients_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
-            to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
-                      biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
-            std::cout << std::setprecision(15)
-                      << biquad_coefficients_double[0]
-                      << " " << biquad_coefficients_double[1]
-                      << " " << biquad_coefficients_double[2]
-                      << " 1"
-                      << " " << biquad_coefficients_double[3]
-                      << " " << biquad_coefficients_double[4]
-                      << std::endl;
-        }
+    /**
+     * @brief   Process a batch of samples.
+     *
+     * @param cascade  The filter instance.
+     * @param src  The input buffer.
+     * @param dst  The output buffer.
+     * @param block_size  The number of samples to process.
+     */
+    static void process_cascade(type *cascade, T *src, T *dst, uint32_t block_size) {
+        biquad_cascade_process(cascade, src, dst, block_size);
     }
 
-#endif
-
-    bool push_biquad_coefficients(const BiquadCoefficients &biquad_coefficients) {
-        if (_num_biquad_blocks_set >= NUMBER_OF_BIQUAD_BLOCKS) {
-            return false;
-        }
-
-        T *current_coefficients_block = &_coefficients[_num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK];
-        current_coefficients_block[0] = static_cast<T>(biquad_coefficients.b0);
-        current_coefficients_block[1] = static_cast<T>(biquad_coefficients.b1);
-        current_coefficients_block[2] = static_cast<T>(biquad_coefficients.b2);
-        current_coefficients_block[3] = static_cast<T>(-biquad_coefficients.a1);
-        current_coefficients_block[4] = static_cast<T>(-biquad_coefficients.a2);
-        _num_biquad_blocks_set++;
-        return true;
+    /**
+     * @brief   Multiply two numbers (float version).
+     *
+     * @param x  The first number.
+     * @param y  The second number.
+     * @return  The product of the two numbers.
+     */
+    [[nodiscard]] static T multiply(T x, T y) {
+        return x * y;
     }
 
-    void init_biquad_cascades() {
-        for (unsigned int i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
-            _biquad_blocks[i].set_coefficients(_coefficients + i * COEFFICIENTS_PER_BIQUAD_BLOCK);
-        }
+    /**
+     * @brief   Push biquad coefficients to the filter.
+     *
+     * @param coefficients  The pointer to the biquad coefficients block.
+     * @param biquad_coefficients  The biquad coefficients.
+     */
+    static void push_biquad_coefficients(T *coefficients, const BiquadCoefficients &biquad_coefficients) {
+        coefficients[0] = static_cast<T>(biquad_coefficients.b0);
+        coefficients[1] = static_cast<T>(biquad_coefficients.b1);
+        coefficients[2] = static_cast<T>(biquad_coefficients.b2);
+        coefficients[3] = static_cast<T>(-biquad_coefficients.a1);
+        coefficients[4] = static_cast<T>(-biquad_coefficients.a2);
     }
 
-    void reset_state() {
-        for (auto &block: _biquad_blocks) {
-            block.reset();
-        }
-    }
-
-    void reset() {
-        _num_biquad_blocks_set = 0;
-        reset_state();
-    }
-
-    [[nodiscard]] T get_gain() const {
-        return _gain;
-    }
-
-    void set_gain(double gain) {
-        if constexpr (std::is_same_v<T, double>) {
-            _gain = gain;
-        } else {
-            to_native(&gain, &_gain, 1);
-        }
-    }
-
-    T process(T x) {
-        x *= _gain;
-        for (auto &biquad_block: _biquad_blocks) {
-            x = biquad_block.process(x);
-        }
-        return x;
-    }
-
-    void process(const T *x, T *out, uint32_t num_samples) {
-        if (num_samples == 0) {
-            return;
-        }
-        for (uint32_t i = 0; i < num_samples; ++i) {
-            out[i] = process(x[i]);
-        }
-    }
-
-    [[nodiscard]] T process(const T *x, uint32_t num_samples) {
-        if (num_samples == 0) {
-            return 0;
-        }
-        T out;
-        for (uint32_t i = 0; i < num_samples; ++i) {
-            out = process(x[i]);
-        }
-        return out;
-    }
-
-private:
-    T _gain;
-    T _coefficients[NUMBER_OF_COEFFICIENTS];
-    BiquadBlockDirectForm _biquad_blocks[NUMBER_OF_BIQUAD_BLOCKS];
-
-    uint32_t _num_biquad_blocks_set = 0;
+    static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = type::BLOCK_DELAY_LINE_SIZE;
 };
+
 }

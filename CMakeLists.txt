@@ -19,6 +19,7 @@ target_include_directories(tiny_iir_core
 )
 
 if(BUILD_FOR_ARM)
+    message(STATUS "Building for ARM platform")
     target_include_directories(tiny_iir_core
             INTERFACE
             ${CMAKE_CURRENT_SOURCE_DIR}/platform/arm
@@ -27,6 +28,7 @@ if(BUILD_FOR_ARM)
     target_link_libraries(tiny_iir_core INTERFACE CMSISDSP)
     target_compile_definitions(tiny_iir_core INTERFACE USE_CMSIS_DSP)
 else()
+    message(STATUS "Building for generic platform")
     target_include_directories(tiny_iir_core
             INTERFACE
             ${CMAKE_CURRENT_SOURCE_DIR}/../platform/generic
