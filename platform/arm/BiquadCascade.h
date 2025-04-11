@@ -71,6 +71,8 @@ struct BiquadCascade<float> {
         coefficients[3] = static_cast<float>(-biquad_coefficients.a1);
         coefficients[4] = static_cast<float>(-biquad_coefficients.a2);
     }
+
+    static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 2;
 };
 
 /**
@@ -135,6 +137,8 @@ struct BiquadCascade<double> {
         coefficients[3] = -biquad_coefficients.a1;
         coefficients[4] = -biquad_coefficients.a2;
     }
+
+    static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 2;
 };
 
 /**
@@ -142,6 +146,7 @@ struct BiquadCascade<double> {
  */
 template<>
 struct BiquadCascade<q31_t> {
+
     typedef arm_biquad_casd_df1_inst_q31 type;
 
     /**
@@ -217,6 +222,8 @@ struct BiquadCascade<q31_t> {
 
         arm_f64_to_q31(&normalized_biquad_coefficients.b0, coefficients, COEFFICIENTS_PER_BIQUAD_BLOCK);
     }
+
+    static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 4;
 };
 
 } // namespace tiny_iir

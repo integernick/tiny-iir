@@ -147,9 +147,7 @@ public:
     static constexpr uint32_t NUMBER_OF_BIQUAD_BLOCKS = (N + 1) / 2;
     static constexpr uint32_t NUMBER_OF_COEFFICIENTS
             = NUMBER_OF_BIQUAD_BLOCKS * COEFFICIENTS_PER_BIQUAD_BLOCK;
-    static constexpr uint32_t DELAY_LINE_SIZE = std::is_same<T, q31_t>::value
-                                                    ? NUMBER_OF_BIQUAD_BLOCKS * 4
-                                                    : NUMBER_OF_BIQUAD_BLOCKS * 2;
+    static constexpr uint32_t DELAY_LINE_SIZE = NUMBER_OF_BIQUAD_BLOCKS * BiquadCascade<T>::BLOCK_DELAY_LINE_SIZE;
 
 private:
     typedef typename BiquadCascade<T>::type biquad_cascade_t;
