@@ -3,10 +3,10 @@ project(tiny-iir LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-option(BUILD_FOR_ARM "Build for ARM platform using CMSIS-DSP" ON)
-option(TINY_IIR_BUILD_TESTS "Build tests" ON)
+option(BUILD_WITH_CMSIS "Build tiny-iir using CMSIS-DSP" ON)
+option(TINY_IIR_BUILD_TESTS "Build tiny-iir tests" OFF)
 
-if(BUILD_FOR_ARM)
+if(BUILD_WITH_CMSIS)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP CMSIS-DSP-build)
 endif()
 
@@ -18,20 +18,23 @@ target_include_directories(tiny_iir_core
         $<INSTALL_INTERFACE:include>
 )
 
-if(BUILD_FOR_ARM)
-    message(STATUS "Building for ARM platform")
+set(TINY_IIR_CMSIS_CORE_DIR "" CACHE PATH
+        "Directory that contains cmsis_compiler.h (CMSIS Core headers)")
+
+if(BUILD_WITH_CMSIS)
+    message(STATUS "Building tiny-iir with CMSIS-DSP")
     target_include_directories(tiny_iir_core
             INTERFACE
             ${CMAKE_CURRENT_SOURCE_DIR}/platform/arm
             ${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP/Include
     )
     target_link_libraries(tiny_iir_core INTERFACE CMSISDSP)
-    target_compile_definitions(tiny_iir_core INTERFACE USE_CMSIS_DSP)
+    target_include_directories(CMSISDSP PRIVATE ${TINY_IIR_CMSIS_CORE_DIR})
 else()
-    message(STATUS "Building for generic platform")
+    message(STATUS "Building tiny-iir for generic platform")
     target_include_directories(tiny_iir_core
             INTERFACE
-            ${CMAKE_CURRENT_SOURCE_DIR}/../platform/generic
+            ${CMAKE_CURRENT_SOURCE_DIR}/platform/generic
     )
 endif()
 

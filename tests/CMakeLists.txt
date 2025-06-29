@@ -4,7 +4,7 @@ file(GLOB COMMON_TEST_SOURCES
 
 set(TEST_SOURCES ${COMMON_TEST_SOURCES})
 
-if(BUILD_FOR_ARM)
+if(BUILD_WITH_CMSIS)
     file(GLOB FIXED_POINT_TEST_SOURCES
             ${CMAKE_CURRENT_SOURCE_DIR}/src/fixed-point/test_*.cpp
     )
@@ -19,7 +19,7 @@ target_include_directories(tiny_iir_tests PRIVATE
 
 add_compile_definitions(CASCADE_FILTER_DEBUG=1)
 
-if(BUILD_FOR_ARM)
+if(BUILD_WITH_CMSIS)
     target_include_directories(tiny_iir_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/../platform/arm
             ${CMAKE_CURRENT_SOURCE_DIR}/include/fixed-point
