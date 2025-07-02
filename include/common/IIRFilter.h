@@ -107,6 +107,10 @@ public:
 
     static constexpr uint32_t REAL_ORDER = PassTypeData<PASS_TYPE, N>::CASCADE_ORDER;
 
+    // Not just CascadeFilter<N, T>::NUMBER_OF_BIQUAD_BLOCKS, because the order is doubled for band-pass/band-stop
+    static constexpr uint32_t NUMBER_OF_BIQUAD_BLOCKS
+            = CascadeFilter<PassTypeData<PASS_TYPE, N>::CASCADE_ORDER, T>::NUMBER_OF_BIQUAD_BLOCKS;
+
 protected:
     /**
      * @brief   Initialize analog filter poles and zeros.
@@ -194,10 +198,6 @@ private:
                                           || PT == FilterPassType::BAND_STOP)
                                           && N & 1)>>
     void add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs);
-
-    // Not just CascadeFilter<N, T>::NUMBER_OF_BIQUAD_BLOCKS, because the order is doubled for band-pass/band-stop
-    static constexpr uint32_t NUMBER_OF_BIQUAD_BLOCKS
-            = CascadeFilter<PassTypeData<PASS_TYPE, N>::CASCADE_ORDER, T>::NUMBER_OF_BIQUAD_BLOCKS;
 
     PassTypeData<PASS_TYPE, N> _pass_type_data;
     FrequencyConfig _frequency_config;
