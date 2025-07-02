@@ -119,8 +119,7 @@ void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency,
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<FilterPassType PT, typename>
 void
-IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq,
-                                                           double normalized_highcut_freq,
+IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double normalized_highcut_freq,
                                         double pass_ripple_db, double stop_ripple_db) {
     pass_ripple_db = std::abs(pass_ripple_db);
     stop_ripple_db = std::abs(stop_ripple_db);
@@ -161,12 +160,8 @@ void IIRElliptic<N, T, PASS_TYPE>::init_analog() {
         return;
     }
 
-    const double K = calculate_elliptic_integral(k);
-    const double K_prime = calculate_elliptic_integral(get_complimentary(k));
-    const double R = K_prime / K;
-
     if constexpr (N & 1) {
-        const Complex pole = IMAG_UNIT * asn(IMAG_UNIT / v0, k, R);
+        const Complex pole = IMAG_UNIT * sn(IMAG_UNIT * v0, k);
         const Complex zero = Complex{INFINITY_VALUE, 0};
         IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
     }
