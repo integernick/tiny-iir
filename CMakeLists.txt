@@ -4,7 +4,8 @@ project(tiny-iir LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 option(BUILD_WITH_CMSIS "Build tiny-iir using CMSIS-DSP" ON)
-option(TINY_IIR_BUILD_TESTS "Build tiny-iir tests" OFF)
+option(TINY_IIR_BUILD_TESTS "Build tiny-iir tests" ON)
+option(TINY_IIR_BUILD_TOOLS "Build tiny-iir CLI utility" ON)
 
 if(BUILD_WITH_CMSIS)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CMSIS-DSP CMSIS-DSP-build)
@@ -42,3 +43,5 @@ if(TINY_IIR_BUILD_TESTS)
     find_package(GTest REQUIRED)
     add_subdirectory(tests)
 endif()
+
+add_subdirectory(tools/designer-cli)
