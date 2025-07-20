@@ -26,12 +26,17 @@ public:
     [[nodiscard]] const T *get_coefficients() const;
 
     /**
+     * @brief   Initialize the filter.
+     */
+    void init();
+
+    /**
      * @brief   Push a new block of biquad coefficients.
      *
      * @param biquad_coefficients  The biquad coefficients.
      * @return  True if pushing the coefficients was successful, false otherwise.
      */
-    bool push_biquad_coefficients(const BiquadCoefficients &biquad_coefficients);
+    bool push_biquad_coefficients(BiquadCoefficients &biquad_coefficients);
 
     /**
      * @brief   Update total filter gain with a new biquad gain.
@@ -150,9 +155,7 @@ public:
     static constexpr uint32_t DELAY_LINE_SIZE = NUMBER_OF_BIQUAD_BLOCKS * BiquadCascade<T>::BLOCK_DELAY_LINE_SIZE;
 
 private:
-    typedef typename BiquadCascade<T>::type biquad_cascade_t;
-
-    biquad_cascade_t _biquad_cascade;
+    BiquadCascade<T> _biquad_cascade;
 
     T _gain{};
     T _gain_crossfade{};
@@ -178,8 +181,6 @@ CascadeFilter<N, T>::CascadeFilter() {
         _coefficients[i * COEFFICIENTS_PER_BIQUAD_BLOCK] = 1.0;
     }
 
-    BiquadCascade<T>::init(&_biquad_cascade, NUMBER_OF_BIQUAD_BLOCKS, _coefficients, _state);
-
     if (_crossfade_samples > 0) {
         const double crossfade_samples_inverse = 1.0 / _crossfade_samples;
         to_native(&crossfade_samples_inverse, &_crossfade_samples_inverse, 1);
@@ -192,13 +193,18 @@ const T *CascadeFilter<N, T>::get_coefficients() const {
 }
 
 template<uint32_t N, typename T>
-bool CascadeFilter<N, T>::push_biquad_coefficients(const BiquadCoefficients &biquad_coefficients) {
+void CascadeFilter<N, T>::init() {
+    _biquad_cascade.init(NUMBER_OF_BIQUAD_BLOCKS, _coefficients, _state);
+}
+
+template<uint32_t N, typename T>
+bool CascadeFilter<N, T>::push_biquad_coefficients(BiquadCoefficients &biquad_coefficients) {
     if (_num_biquad_blocks_set >= NUMBER_OF_BIQUAD_BLOCKS) {
         return false;
     }
 
     T new_block[COEFFICIENTS_PER_BIQUAD_BLOCK];
-    BiquadCascade<T>::push_biquad_coefficients(new_block, biquad_coefficients);
+    _biquad_cascade.push_biquad_coefficients(new_block, biquad_coefficients);
 
     const uint32_t current_block_offset = _num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK;
 
@@ -289,7 +295,7 @@ T CascadeFilter<N, T>::process(T x) {
     x = BiquadCascade<T>::multiply(x, _gain_crossfade);
     T output = 0;
 
-    BiquadCascade<T>::process_cascade(&_biquad_cascade, &x, &output, 1);
+    _biquad_cascade.process_cascade(&x, &output, 1);
 
     return output;
 }
@@ -306,7 +312,7 @@ void CascadeFilter<N, T>::process(const T *x, T *out, uint32_t num_samples) {
         input_buffer[i] = BiquadCascade<T>::multiply(x[i], _gain_crossfade);
     }
 
-    BiquadCascade<T>::process_cascade(&_biquad_cascade, input_buffer, out, num_samples);
+    _biquad_cascade.process_cascade(input_buffer, out, num_samples);
 }
 
 template<uint32_t N, typename T>
@@ -329,7 +335,7 @@ T CascadeFilter<N, T>::process(U x) {
     x_native = BiquadCascade<T>::multiply(x_native, _gain_crossfade);
     T output = 0;
 
-    BiquadCascade<T>::process_cascade(&_biquad_cascade, &x_native, &output, 1);
+    _biquad_cascade.process_cascade(&x_native, &output, 1);
     return output;
 }
 
@@ -347,7 +353,7 @@ void CascadeFilter<N, T>::process(const U *x, T *out, uint32_t num_samples) {
         x_native[i] = BiquadCascade<T>::multiply(x_native[i], _gain_crossfade);
     }
 
-    BiquadCascade<T>::process_cascade(&_biquad_cascade, x_native, out, num_samples);
+    _biquad_cascade.process_cascade(x_native, out, num_samples);
 }
 
 template<uint32_t N, typename T>
@@ -403,7 +409,8 @@ void CascadeFilter<N, T>::print_coefficients() const {
         to_double(&_coefficients[COEFFICIENTS_PER_BIQUAD_BLOCK * i],
                   biquad_coefficients_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
         snprintf(debug_buf, sizeof(debug_buf),
-                 "1 %.15f %.15f 1 %.15f %.15f\n",
+                 "%.15f %.15f %.15f 1 %.15f %.15f\n",
+                 biquad_coefficients_double[0],
                  biquad_coefficients_double[1],
                  biquad_coefficients_double[2],
                  -biquad_coefficients_double[3],

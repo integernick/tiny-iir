@@ -24,8 +24,10 @@ TEST(ButterTest, ButterLPFQ31Coeffs) {
 }
 
 TEST(ButterTest, ButterLPFQ31ImpulseResponse) {
+    IIRButter<12, double> butter_lpf_d(0.3);
+    butter_lpf_d.print_coefficients();
     IIRButter<12, q31_t> butter_lpf(0.3);
-
+    butter_lpf.print_coefficients();
     const std::vector<double> expected = {
             6.86125789668954e-06, 0.000115198364232461, 0.000924704457530324, 0.00472285891438076,
             0.0172210594453799, 0.0476308528941755, 0.103457117533882, 0.17971446218948,

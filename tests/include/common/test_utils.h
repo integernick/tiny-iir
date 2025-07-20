@@ -1,7 +1,7 @@
 #pragma once
 
 #include <type_utils.h>
-#include <butter/IIRButter.h>
+#include <common/CascadeFilter.h>
 
 #include <gtest/gtest.h>
 
@@ -82,8 +82,6 @@ void test_response(FILTER &filter, const std::vector<double> &input_signal,
 
 template<class FILTER>
 void test_impulse_response(FILTER &filter, const std::vector<double> &expected_response, const double tolerance) {
-    using ValueType = typename FILTER::ValueType;
-
     const uint32_t response_size = expected_response.size();
     std::vector<double> impulse(response_size);
     impulse[0] = 1.0;
@@ -93,8 +91,6 @@ void test_impulse_response(FILTER &filter, const std::vector<double> &expected_r
 
 template<class FILTER>
 void test_step_response(FILTER &filter, const std::vector<double> &expected_response, const double tolerance) {
-    using ValueType = typename FILTER::ValueType;
-
     const uint32_t response_size = expected_response.size();
     std::vector<double> step(response_size);
     std::fill(step.begin(), step.end(), 1.0);
