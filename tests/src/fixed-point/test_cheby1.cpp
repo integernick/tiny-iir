@@ -49,17 +49,33 @@ TEST(Cheby1Test, Cheby1BPFQ31Coeffs) {
 }
 
 TEST(Cheby1Test, Cheby1BPFQ31ImpulseResponse) {
-    IIRCheby1<4, q31_t, FilterPassType::BAND_PASS> cheby1_bpf(0.7, 0.8, 0.1);
-    cheby1_bpf.print_coefficients();
+    IIRCheby1<7, q31_t, FilterPassType::BAND_PASS> cheby1_bpf(0.4, 0.6, 0.1);
 
-    /* TODO: Trust me */
-    EXPECT_TRUE(true);
+    const std::vector<double> expected = {
+            1.92703455044235e-05, 5.77648294330306e-20, -0.000237524848074349, -8.08921536809345e-19,
+            0.00142415810127082, 5.52827323756361e-18, -0.00557286413357188, -2.46093089696208e-17,
+            0.0161066755162555, 8.01547878464967e-17, -0.0368520506848039, -2.02498489925638e-16,
+            0.0697297871057752, 4.07077099603553e-16, -0.112254446907077, -6.45945347751709e-16,
+            0.15646607297403, 7.45022315216523e-16, -0.190393482833423, -3.58656327037608e-16
+    };
+
+    test_impulse_response(cheby1_bpf, expected, 1e-4);
 }
 
 TEST(Cheby1Test, Cheby1BSFQ31ImpulseResponse) {
+    /*IIRCheby1<5, double, FilterPassType::BAND_STOP> cheby1_bsf_d(0.35, 0.45, 0.05);
+    cheby1_bsf_d.print_coefficients();*/
+
     IIRCheby1<5, q31_t, FilterPassType::BAND_STOP> cheby1_bsf(0.35, 0.45, 0.05);
     cheby1_bsf.print_coefficients();
 
-    /* TODO: Trust */
-    EXPECT_TRUE(true);
+    const std::vector<double> expected = {
+            0.5962523346637, -0.191490997136767, 0.524010068943812, 0.332580223670483,
+            -0.108109115141162, -0.171196354642223, -0.0197928045064232, 0.00495260703021452,
+            -0.0368951567164588, 0.0319512096022865, 0.112772045022167, 0.0327751255331205,
+            -0.112489728314173, -0.103498819058062, 0.0445415424213215, 0.114547592844524,
+            0.0269861868090479, -0.0694601980209971, -0.0519178637498459, 0.0160700533743126
+    };
+
+    test_impulse_response(cheby1_bsf, expected, 1e-4);
 }

@@ -79,7 +79,7 @@ public:
      *
      * @return  The filter gain.
      */
-    [[nodiscard]] T get_gain() const;
+    [[nodiscard]] double get_gain() const;
 
     /**
      * @brief   Get filter coefficients.
@@ -183,7 +183,7 @@ private:
      * @param biquad_coefficients  The biquad coefficients.
      * @return  True if pushing the coefficients was successful, false otherwise.
      */
-    void push_biquad_coefficients(const BiquadCoefficients &biquad_coefficients);
+    void push_biquad_coefficients(BiquadCoefficients &biquad_coefficients);
 
     /**
      * @brief   Add a pair of S-plane pole-zero pairs.
@@ -205,7 +205,7 @@ private:
 
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-T IIRFilter<N, T, PASS_TYPE>::get_gain() const {
+double IIRFilter<N, T, PASS_TYPE>::get_gain() const {
     return _cascade_filter.get_gain();
 }
 
@@ -279,6 +279,8 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_fre
         pole_zero_pair.zero = _pass_type_data.transform(pole_zero_pair.zero);
         add_pole_zero_conjugates_pair(pole_zero_pair);
     }
+
+    _cascade_filter.init();
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
@@ -332,6 +334,8 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double cutlow_freq, double c
     for (int i = static_cast<int>(N / 2) - 1; i >= 0; --i) {
         add_two_pole_zero_pairs_from_one(_analog_pole_zero_pairs[i]);
     }
+
+    _cascade_filter.init();
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
@@ -340,7 +344,7 @@ void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_conjugates_pair(const PoleZeroPai
     const Complex &zero_z = pole_zero_pair.zero;
 
     // (z - z0)(z - z0*)=z^2 - z(z0+z0*) + |z0|^2 = z^2 * (1 - 2*Re(z0) * z^-1 + |z0|^2 * z^-2)
-    const BiquadCoefficients biquad_coefficients = {
+    BiquadCoefficients biquad_coefficients = {
             .b0 = 1.0,
             .b1 = -2.0 * zero_z.real(),
             .b2 = zero_z.real() * zero_z.real() + zero_z.imag() * zero_z.imag(),
@@ -357,7 +361,7 @@ void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_single_pair(const PoleZeroPair &p
     const Complex &zero_z = pole_zero_pair.zero;
 
     // (z - z0) = z * (1 - z^-1 * z0 + 0)
-    const BiquadCoefficients biquad_coefficients = {
+    BiquadCoefficients biquad_coefficients = {
             .b0 = 1.0,
             .b1 = -zero_z.real(),
             .b2 = 0.0,
@@ -369,10 +373,10 @@ void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_single_pair(const PoleZeroPair &p
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-void IIRFilter<N, T, PASS_TYPE>::push_biquad_coefficients(const BiquadCoefficients &biquad_coefficients) {
+void IIRFilter<N, T, PASS_TYPE>::push_biquad_coefficients(BiquadCoefficients &biquad_coefficients) {
+    _cascade_filter.push_biquad_coefficients(biquad_coefficients);
     const double biquad_gain = _pass_type_data.calculate_gain(biquad_coefficients);
     _cascade_filter.update_biquad_gain(1.0 / biquad_gain);
-    _cascade_filter.push_biquad_coefficients(biquad_coefficients);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
@@ -384,7 +388,7 @@ void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_pairs(const std::pair<PoleZeroPai
     const Complex &z1 = pole_zero_pairs.first.zero;
     const Complex &z2 = pole_zero_pairs.second.zero;
 
-    const BiquadCoefficients biquad_coefficients = {
+    BiquadCoefficients biquad_coefficients = {
             .b0 = 1.0,
             .b1 = -(pole_zero_pairs.first.zero.real() + pole_zero_pairs.second.zero.real()),
             .b2 = z1.imag() == 0.0

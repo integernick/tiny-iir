@@ -44,4 +44,6 @@ if(TINY_IIR_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-add_subdirectory(tools/designer-cli)
+if(TINY_IIR_BUILD_TOOLS)
+    add_subdirectory(tools/designer-cli)
+endif()

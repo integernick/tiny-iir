@@ -15,59 +15,118 @@
 using json = nlohmann::json;
 using namespace tiny_iir;
 
-static std::string sos_line(const BiquadCoefficients &c) {
+namespace {
+std::string sos_line(const BiquadCoefficients &c) {
     std::ostringstream ss;
     ss.setf(std::ios::fixed);
     ss << std::setprecision(15)
        << 1.0 << ' '
-       << c.b1 / c.b0 << ' '
-       << c.b2 / c.b0 << ' '
+       << c.b1 << ' '
+       << c.b2 << ' '
        << 1.0 << ' '
-       << -c.a1 / c.b0 << ' '
-       << -c.a2 / c.b0;
+       << -c.a1 << ' '
+       << -c.a2;
     return ss.str();
 }
 
-#define ORDERS(ORD, CODE)                              \
-    switch (ORD) {                                     \
-        case  1: CODE( 1); break;                      \
-        case  2: CODE( 2); break;                      \
-        case  3: CODE( 3); break;                      \
-        case  4: CODE( 4); break;                      \
-        case  5: CODE( 5); break;                      \
-        case  6: CODE( 6); break;                      \
-        case  7: CODE( 7); break;                      \
-        case  8: CODE( 8); break;                      \
-        case  9: CODE( 9); break;                      \
-        case 10: CODE(10); break;                      \
-        case 11: CODE(11); break;                      \
-        case 12: CODE(12); break;                      \
-        case 13: CODE(13); break;                      \
-        case 14: CODE(14); break;                      \
-        case 15: CODE(15); break;                      \
-        case 16: CODE(16); break;                      \
-        case 17: CODE(17); break;                      \
-        case 18: CODE(18); break;                      \
-        case 19: CODE(19); break;                      \
-        case 20: CODE(20); break;                      \
-        default: throw std::invalid_argument("order 1-20 only"); \
+template<int NUM_OF_BIQUAD_BLOCKS, typename T>
+static void collect(T &f, std::vector<std::string> &v);
+
+template<template<int, typename, FilterPassType> class Family,
+         FilterPassType P,
+         typename... Args>
+void make_filter(int order,
+                 std::vector<std::string> &sos_out,
+                 double &gain_out,
+                 Args &&... args) {
+    auto invoke = [&](auto N_c) {
+        constexpr int N = N_c.value;
+        Family<N, double, P> iir(std::forward<Args>(args)...);
+        gain_out = iir.get_gain();
+        collect<Family<N, double, P>::NUMBER_OF_BIQUAD_BLOCKS>(iir, sos_out);
+    };
+
+    switch (order) {
+        case 1:
+            invoke(std::integral_constant<int, 1>{});
+            break;
+        case 2:
+            invoke(std::integral_constant<int, 2>{});
+            break;
+        case 3:
+            invoke(std::integral_constant<int, 3>{});
+            break;
+        case 4:
+            invoke(std::integral_constant<int, 4>{});
+            break;
+        case 5:
+            invoke(std::integral_constant<int, 5>{});
+            break;
+        case 6:
+            invoke(std::integral_constant<int, 6>{});
+            break;
+        case 7:
+            invoke(std::integral_constant<int, 7>{});
+            break;
+        case 8:
+            invoke(std::integral_constant<int, 8>{});
+            break;
+        case 9:
+            invoke(std::integral_constant<int, 9>{});
+            break;
+        case 10:
+            invoke(std::integral_constant<int, 10>{});
+            break;
+        case 11:
+            invoke(std::integral_constant<int, 11>{});
+            break;
+        case 12:
+            invoke(std::integral_constant<int, 12>{});
+            break;
+        case 13:
+            invoke(std::integral_constant<int, 13>{});
+            break;
+        case 14:
+            invoke(std::integral_constant<int, 14>{});
+            break;
+        case 15:
+            invoke(std::integral_constant<int, 15>{});
+            break;
+        case 16:
+            invoke(std::integral_constant<int, 16>{});
+            break;
+        case 17:
+            invoke(std::integral_constant<int, 17>{});
+            break;
+        case 18:
+            invoke(std::integral_constant<int, 18>{});
+            break;
+        case 19:
+            invoke(std::integral_constant<int, 19>{});
+            break;
+        case 20:
+            invoke(std::integral_constant<int, 20>{});
+            break;
+        default:
+            throw std::invalid_argument("order 1‑20 only");
     }
+}
 
 template<int NUM_OF_BIQUAD_BLOCKS, typename T>
-static void collect(T &f, std::vector<std::string> &v) {
+void collect(T &f, std::vector<std::string> &v) {
     const auto *s = reinterpret_cast<const BiquadCoefficients *>(f.get_coefficients());
 
     for (int i = 0; i < NUM_OF_BIQUAD_BLOCKS; ++i) {
         v.push_back(sos_line(s[i]));
     }
 }
+} // namespace
 
 int main(int argc, char **argv) {
     cxxopts::Options cli("tiny-iir-designer-cli",
                          "Tiny-IIR command-line filter designer\n\n"
                          "  --type : butter | cheby1 | cheby2 | elliptic\n"
                          "  --pass : lpf | hpf | bpf | bsf\n");
-
     cli.add_options()
             ("t,type", "filter family", cxxopts::value<std::string>())
             ("p,pass", "pass type", cxxopts::value<std::string>())
@@ -86,22 +145,26 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    static std::map<std::string, FilterPassType> str2pass_map = {
-        {"lpf", FilterPassType::LOW_PASS},
-        {"hpf", FilterPassType::HIGH_PASS},
-        {"bpf", FilterPassType::BAND_PASS},
-        {"bsf", FilterPassType::BAND_STOP},
+    const std::unordered_map<std::string, FilterPassType> str2pass_map = {
+            {"lpf", FilterPassType::LOW_PASS},
+            {"hpf", FilterPassType::HIGH_PASS},
+            {"bpf", FilterPassType::BAND_PASS},
+            {"bsf", FilterPassType::BAND_STOP},
     };
 
     const std::string type = args["type"].as<std::string>();
     const std::string pass_str = args["pass"].as<std::string>();
 
     if (str2pass_map.find(pass_str) == str2pass_map.end()) {
-        std::cerr << "Unknown filter pass type\n";
+        std::cerr << "Supported filter pass types:\n";
+        for (const auto &[key, value]: str2pass_map) {
+            std::cerr << "\t" << key << "\n";
+        }
+        std::cerr << "\n";
         return 1;
     }
 
-    const FilterPassType pass = str2pass_map[pass_str];
+    const FilterPassType pass = str2pass_map.at(pass_str);
     const int order = args["order"].as<int>();
     const double fc1 = args["lowcut"].as<double>();
     const double fc2 = args["highcut"].as<double>();
@@ -133,151 +196,50 @@ int main(int argc, char **argv) {
     std::vector<std::string> sos;
     double gain = 1.0;
 
-#define BUTTER_LPF(N) { \
-    IIRButter<N, double> f(fc1); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define BUTTER_HPF(N) { \
-    IIRButter<N, double, FilterPassType::HIGH_PASS> f(fc1); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define BUTTER_BPF(N) { \
-    IIRButter<N, double, FilterPassType::BAND_PASS> f(fc1, fc2); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define BUTTER_BSF(N) { \
-    IIRButter<N, double, FilterPassType::BAND_STOP> f(fc1, fc2); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-
-#define CHEBY1_LPF(N) { \
-    IIRCheby1<N, double> f(fc1,rp); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define CHEBY1_HPF(N) { \
-    IIRCheby1<N, double, FilterPassType::HIGH_PASS> f(fc1, rp); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define CHEBY1_BPF(N) { \
-    IIRCheby1<N, double, FilterPassType::BAND_PASS> f(fc1, fc2, rp); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define CHEBY1_BSF(N) { \
-    IIRCheby1<N, double, FilterPassType::BAND_STOP> f(fc1, fc2, rp); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-
-#define CHEBY2_LPF(N) { \
-    IIRCheby2<N, double> f(fc1, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define CHEBY2_HPF(N) { \
-    IIRCheby2<N, double, FilterPassType::HIGH_PASS> f(fc1, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define CHEBY2_BPF(N) { \
-    IIRCheby2<N, double, FilterPassType::BAND_PASS> f(fc1, fc2, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define CHEBY2_BSF(N) { \
-    IIRCheby2<N, double, FilterPassType::BAND_STOP> f(fc1, fc2, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-
-#define ELLIPTIC_LPF(N)  { \
-    IIRElliptic<N, double> f(fc1, rp, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define ELLIPTIC_HPF(N)  { \
-    IIRElliptic<N, double, FilterPassType::HIGH_PASS> f(fc1, rp, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define ELLIPTIC_BPF(N)  { \
-    IIRElliptic<N, double, FilterPassType::BAND_PASS> f(fc1, fc2, rp, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-#define ELLIPTIC_BSF(N)  { \
-    IIRElliptic<N, double, FilterPassType::BAND_STOP> f(fc1, fc2, rp, rs); \
-    gain = f.get_gain();    \
-    collect<IIRButter<N, double, FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f, sos); \
-}
-
     if (type == "butter") {
         if (pass == FilterPassType::LOW_PASS) {
-            ORDERS(order, BUTTER_LPF)
+            make_filter<IIRButter, FilterPassType::LOW_PASS>(order, sos, gain, fc1);
         } else if (pass == FilterPassType::HIGH_PASS) {
-            ORDERS(order, BUTTER_HPF)
+            make_filter<IIRButter, FilterPassType::HIGH_PASS>(order, sos, gain, fc1);
         } else if (pass == FilterPassType::BAND_PASS) {
-            ORDERS(order, BUTTER_BPF)
+            make_filter<IIRButter, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2);
         } else {
-            ORDERS(order, BUTTER_BSF)
+            make_filter<IIRButter, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2);
         }
     } else if (type == "cheby1") {
         if (pass == FilterPassType::LOW_PASS) {
-            ORDERS(order, CHEBY1_LPF)
+            make_filter<IIRCheby1, FilterPassType::LOW_PASS>(order, sos, gain, fc1, rp);
         } else if (pass == FilterPassType::HIGH_PASS) {
-            ORDERS(order, CHEBY1_HPF)
+            make_filter<IIRCheby1, FilterPassType::HIGH_PASS>(order, sos, gain, fc1, rp);
         } else if (pass == FilterPassType::BAND_PASS) {
-            ORDERS(order, CHEBY1_BPF)
+            make_filter<IIRCheby1, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2, rp);
         } else {
-            ORDERS(order, CHEBY1_BSF)
+            make_filter<IIRCheby1, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2, rp);
         }
     } else if (type == "cheby2") {
         if (pass == FilterPassType::LOW_PASS) {
-            ORDERS(order, CHEBY2_LPF)
+            make_filter<IIRCheby2, FilterPassType::LOW_PASS>(order, sos, gain, fc1, rs);
         } else if (pass == FilterPassType::HIGH_PASS) {
-            ORDERS(order, CHEBY2_HPF)
+            make_filter<IIRCheby2, FilterPassType::HIGH_PASS>(order, sos, gain, fc1, rs);
         } else if (pass == FilterPassType::BAND_PASS) {
-            ORDERS(order, CHEBY2_BPF)
+            make_filter<IIRCheby2, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2, rs);
         } else {
-            ORDERS(order, CHEBY2_BSF)
+            make_filter<IIRCheby2, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2, rs);
         }
     } else if (type == "elliptic") {
         if (pass == FilterPassType::LOW_PASS) {
-            ORDERS(order, ELLIPTIC_LPF)
+            make_filter<IIRElliptic, FilterPassType::LOW_PASS>(order, sos, gain, fc1, rp, rs);
         } else if (pass == FilterPassType::HIGH_PASS) {
-            ORDERS(order, ELLIPTIC_HPF)
+            make_filter<IIRElliptic, FilterPassType::HIGH_PASS>(order, sos, gain, fc1, rp, rs);
         } else if (pass == FilterPassType::BAND_PASS) {
-            ORDERS(order, ELLIPTIC_BPF)
+            make_filter<IIRElliptic, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2, rp, rs);
         } else {
-            ORDERS(order, ELLIPTIC_BSF)
+            make_filter<IIRElliptic, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2, rp, rs);
         }
     } else {
-        std::cerr << "Unknown filter type\n";
+        std::cerr << "Supported filter families:\n\tbutter cheby1 cheby2 elliptic\n";
         return 1;
     }
-
-#undef BUTTER_LPF
-#undef BUTTER_HPF
-#undef BUTTER_BPF
-#undef BUTTER_BSF
-#undef CHEBY1_LPF
-#undef CHEBY1_HPF
-#undef CHEBY1_BPF
-#undef CHEBY1_BSF
-#undef CHEBY2_LPF
-#undef CHEBY2_HPF
-#undef CHEBY2_BPF
-#undef CHEBY2_BSF
-#undef ELLIPTIC_LPF
-#undef ELLIPTIC_HPF
-#undef ELLIPTIC_BPF
-#undef ELLIPTIC_BSF
 
     const std::string key = type + "_" + pass_str;
 
