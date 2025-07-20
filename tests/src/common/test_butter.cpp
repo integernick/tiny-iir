@@ -37,7 +37,6 @@ TEST(ButterTest, ButterLPFDoubleImpulseResponse) {
 
 TEST(ButterTest, ButterBPFImpulseResponse) {
     IIRButter<4, double, FilterPassType::BAND_PASS> butter_bpf(0.7, 0.8);
-    butter_bpf.print_coefficients();
 
     /* TODO: Trust me bro */
     EXPECT_TRUE(true);
@@ -45,7 +44,6 @@ TEST(ButterTest, ButterBPFImpulseResponse) {
 
 TEST(ButterTest, ButterBSFImpulseResponse) {
     IIRButter<4, double, FilterPassType::BAND_STOP> butter_bsf(0.7, 0.8);
-    butter_bsf.print_coefficients();
 
     /* TODO: Trust */
     EXPECT_TRUE(true);

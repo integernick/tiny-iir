@@ -1,12 +1,13 @@
 #pragma once
 
 #include <type_utils.h>
-#include <butter/IIRButter.h>
+#include <common/CascadeFilter.h>
 
 #include <gtest/gtest.h>
+#include <type_traits>
+#include <cmath>
 
 namespace tiny_iir {
-
 static constexpr double TOL_DOUBLE = 1e-9;
 
 template<class FILTER>
@@ -26,7 +27,7 @@ void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<d
     EXPECT_EQ(num_of_biquad_blocks, num_of_blocks_expected)
                         << "Number of blocks mismatch";
 
-    const ValueType gain = filter.get_gain();
+    const double gain = filter.get_gain();
     double gain_as_double;
     to_double(&gain, &gain_as_double, 1);
 
@@ -44,7 +45,7 @@ void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<d
             const uint32_t coeff_idx = i * COEFFICIENTS_PER_BIQUAD_BLOCK + j;
             double coeff_expected = expected_biquad_coeffs[j];
             if (j > 2) {
-                coeff_expected = -coeff_expected; // a0 and a1 are stored with an inverse sign compared to MATLAB
+                coeff_expected = -coeff_expected; // a1 and a2 are stored with an inverse sign compared to MATLAB
             }
             double coeff_as_double;
             to_double(&filter.get_coefficients()[coeff_idx], &coeff_as_double, 1);
@@ -82,8 +83,6 @@ void test_response(FILTER &filter, const std::vector<double> &input_signal,
 
 template<class FILTER>
 void test_impulse_response(FILTER &filter, const std::vector<double> &expected_response, const double tolerance) {
-    using ValueType = typename FILTER::ValueType;
-
     const uint32_t response_size = expected_response.size();
     std::vector<double> impulse(response_size);
     impulse[0] = 1.0;
@@ -93,8 +92,6 @@ void test_impulse_response(FILTER &filter, const std::vector<double> &expected_r
 
 template<class FILTER>
 void test_step_response(FILTER &filter, const std::vector<double> &expected_response, const double tolerance) {
-    using ValueType = typename FILTER::ValueType;
-
     const uint32_t response_size = expected_response.size();
     std::vector<double> step(response_size);
     std::fill(step.begin(), step.end(), 1.0);
