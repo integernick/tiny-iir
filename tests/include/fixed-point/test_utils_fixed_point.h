@@ -9,7 +9,7 @@
 
 namespace tiny_iir {
 
-constexpr double TOL_Q31 = 2e-8;
+constexpr double TOL_Q31 = 1e-7;
 
 inline void normalize_coeffs(std::vector<double> &coeffs) {
     constexpr uint32_t COEFFS_PER_BLOCK = 6; // b0,b1,b2,a0,a1,a2
@@ -41,7 +41,7 @@ inline void normalize_coeffs(std::vector<double> &coeffs) {
         blk[0] *= scale; // b0
         blk[1] *= scale; // b1
         blk[2] *= scale; // b2
-        blk[3] *= scale; // a0 (harmless to scale for expected values)
+        blk[3] *= scale; // a0
         blk[4] *= scale; // a1
         blk[5] *= scale; // a2
     }

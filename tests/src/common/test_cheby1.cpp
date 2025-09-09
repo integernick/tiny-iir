@@ -13,8 +13,7 @@ TEST(Cheby1Test, Cheby1LPFDoubleCoeffs) {
             1.0, 1.0, 0.0, 1.0, 0.881082750141717, 0.0
     };
     test_coeffs(cheby1_lpf, GAIN_EXPECTED, expected_coeffs, TOL);
-
-
+    
     IIRCheby1<4, double> cheby1_lpf_order_4(0.5, 0.3);
     GAIN_EXPECTED = 0.0765461714674103;
     expected_coeffs = {
@@ -27,6 +26,7 @@ TEST(Cheby1Test, Cheby1LPFDoubleCoeffs) {
 
 TEST(Cheby1Test, Cheby1LPFDoubleImpulseResponse) {
     IIRCheby1<4, double> cheby1_lpf(0.5, 0.3);
+
     std::vector<double> expected_impulse_response = {
             0.0765461714674103, 0.334608043771838, 0.520982239568247, 0.249584500664994,
             -0.164138919075087, -0.148499040135320, 0.0889256922160354, 0.0726141799978015,
@@ -38,6 +38,7 @@ TEST(Cheby1Test, Cheby1LPFDoubleImpulseResponse) {
     test_impulse_response(cheby1_lpf, expected_impulse_response, TOL);
 
     cheby1_lpf.configure(0.7, 0.1);
+
     cheby1_lpf.reset_state(); // Resets filter state
     expected_impulse_response = {
             0.28752684851852, 0.682626808501851, 0.210378973651761, -0.300402215664622,
