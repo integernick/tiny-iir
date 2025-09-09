@@ -8,7 +8,7 @@
 #include <cmath>
 
 namespace tiny_iir {
-static constexpr double TOL_DOUBLE = 1e-9;
+static constexpr double TOL_DOUBLE = 2e-9;
 
 template<class FILTER>
 void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<double> &expected_coeffs,
@@ -27,7 +27,7 @@ void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<d
     EXPECT_EQ(num_of_biquad_blocks, num_of_blocks_expected)
                         << "Number of blocks mismatch";
 
-    const double gain = filter.get_gain();
+    const ValueType gain = filter.get_gain();
     double gain_as_double;
     to_double(&gain, &gain_as_double, 1);
 

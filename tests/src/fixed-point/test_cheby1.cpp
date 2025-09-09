@@ -63,11 +63,7 @@ TEST(Cheby1Test, Cheby1BPFQ31ImpulseResponse) {
 }
 
 TEST(Cheby1Test, Cheby1BSFQ31ImpulseResponse) {
-    /*IIRCheby1<5, double, FilterPassType::BAND_STOP> cheby1_bsf_d(0.35, 0.45, 0.05);
-    cheby1_bsf_d.print_coefficients();*/
-
     IIRCheby1<5, q31_t, FilterPassType::BAND_STOP> cheby1_bsf(0.35, 0.45, 0.05);
-    cheby1_bsf.print_coefficients();
 
     const std::vector<double> expected = {
             0.5962523346637, -0.191490997136767, 0.524010068943812, 0.332580223670483,

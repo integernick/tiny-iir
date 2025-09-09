@@ -260,9 +260,11 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_fre
 
     _frequency_config.w1 = normalized_cutoff_frequency;
 
+    _pass_type_data.init(normalized_cutoff_frequency);
+
     _cascade_filter.set_gain(get_analog_gain());
     _cascade_filter.reset_blocks();
-    _pass_type_data.init(normalized_cutoff_frequency);
+    _cascade_filter.reset();
 
     // Start from the lowest Q factor pole (closest to the real axis)
     if constexpr (N & 1) {
@@ -295,6 +297,7 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double cutlow_freq, double c
 
     _cascade_filter.set_gain(get_analog_gain());
     _cascade_filter.reset_blocks();
+    _cascade_filter.reset();
 
     constexpr double MIN_FREQ = 1e-8;
     constexpr double MAX_FREQ = 2 * M_PI - MIN_FREQ;
