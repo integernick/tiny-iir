@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common/common_utils.h>
+#include <type_utils.h>
 #include <dsp/filtering_functions.h>
 
 #include <type_traits>
@@ -10,14 +10,12 @@ namespace tiny_iir {
 namespace {
 struct ScientificNotation {
     double scale = 1.0;
-    double mag = 0;
     int8_t exp = 0;
 };
 
 ScientificNotation get_scientific_notation(double value) {
     ScientificNotation sn{
             .scale = 1.0,
-            .mag = value,
             .exp = 0,
     };
 
@@ -31,7 +29,6 @@ ScientificNotation get_scientific_notation(double value) {
 
         // Scale factor 2^{-k}
         sn.scale = std::ldexp(1.0, -k);
-        sn.mag = value * sn.scale;
     }
 
     return sn;
@@ -120,6 +117,7 @@ public:
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 2;
 
     static constexpr double UNITY = 1.0;
+
 private:
     arm_biquad_cascade_df2T_instance_f32 _cascade_instance;
     float *_coefficients = nullptr;
@@ -202,6 +200,7 @@ public:
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 2;
 
     static constexpr float UNITY = 1.0f;
+
 private:
     arm_biquad_cascade_df2T_instance_f64 _cascade_instance;
     double *_coefficients = nullptr;
@@ -253,6 +252,7 @@ public:
      */
     void reset() {
         _post_shift = 0;
+        _gain_shift = 0;
         _num_biquad_blocks_set = 0;
     }
 
@@ -316,31 +316,27 @@ public:
     }
 
     void update_gain(double biquad_gain_inv, q31_t &gain) {
-        /*const ScientificNotation sn = get_scientific_notation(biquad_gain_inv);
-        update_post_shift(sn.exp);
-        q31_t biquad_gain_inv_q31;
-        arm_f64_to_q31(&sn.mag, &biquad_gain_inv_q31, 1);
-        multiply(&gain, &biquad_gain_inv_q31, &gain, 1);
-*/
-
         double g = biquad_gain_inv;
         int8_t e = 0;
         if (g > 1.0) {
             e = (int8_t)std::ceil(std::log2(g));
             if (e < 0) e = 0;
-            if (e > 30) e = 30;                      // sanity cap
-            g = std::ldexp(g, -e);                   // g := g / 2^e  in (0,1]
+            if (e > 30) e = 30;
+            g = std::ldexp(g, -e); // g := g / 2^e  in (0,1]
         }
+
         // Clamp mantissa away from 1.0 to avoid rounding to 2^31 in Q31
         const double one_minus = std::nextafter(1.0, 0.0);
-        if (g > one_minus) g = one_minus;
+        if (g > one_minus) {
+            g = one_minus;
+        }
 
         q31_t m_q31;
-        arm_f64_to_q31(&g, &m_q31, 1);               // m in Q31
+        arm_f64_to_q31(&g, &m_q31, 1);
 
         // Multiply current Q31 gain by mantissa
         q31_t prod;
-        arm_mult_q31(&gain, &m_q31, &prod, 1);       // still <= 1.0 in Q31
+        arm_mult_q31(&gain, &m_q31, &prod, 1);
 
         // Try to absorb as much of 2^e as possible into the mantissa by left-shifting prod
         int8_t hr = headroom_q31(prod);
@@ -350,9 +346,8 @@ public:
             e -= absorb;
         }
 
-        // Commit results
-        gain = prod;                                  // new mantissa
-        _gain_shift = (int8_t)(_gain_shift + e);      // leftover power-of-two (global, not per-stage)
+        gain = prod;
+        _gain_shift = (int8_t)(_gain_shift + e);
     }
 
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 4;
@@ -484,11 +479,11 @@ public:
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 4;
 
     static constexpr q15_t UNITY = Q15_MAX;
+
 private:
     arm_biquad_casd_df1_inst_q15 _cascade_instance;
     q15_t *_coefficients = nullptr;
     int8_t _post_shift = 0;
-    uint32_t _num_coefficients = 0;
 };
 
 } // namespace tiny_iir

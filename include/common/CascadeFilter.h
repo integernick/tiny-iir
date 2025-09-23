@@ -10,6 +10,14 @@
 
 namespace tiny_iir {
 
+/**
+ * @brief   Cascade filter with crossfade functionality.
+ *
+ * @details Implements the transfer function of series biquad blocks
+ *          and optional crossfade between old and new coefficients.
+ * @tparam N   Analog prototype filter order.
+ * @tparam T   Data type.
+ */
 template<uint32_t N, typename T>
 class CascadeFilter {
 public:
@@ -27,6 +35,8 @@ public:
 
     /**
      * @brief   Initialize the filter.
+     *
+     * @details Clears the state buffer.
      */
     void init();
 
@@ -93,7 +103,7 @@ public:
     /**
      * @brief   Process a batch of samples.
      *
-     * @param[in] in             The input buffer.
+     * @param[in] in            The input buffer.
      * @param[out] out          The output buffer.
      * @param[in] num_samples   The number of samples to process.
      */
@@ -163,7 +173,7 @@ private:
     BiquadCascade<T> _biquad_cascade;
 
     T _gain{BiquadCascade<T>::UNITY};
-    T _gain_crossfade{};
+    T _gain_crossfade{BiquadCascade<T>::UNITY};
     T _gain_delta{};
 
     T _coefficients[NUMBER_OF_COEFFICIENTS]{};
@@ -185,11 +195,6 @@ CascadeFilter<N, T>::CascadeFilter() {
     for (uint32_t i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
         _coefficients[i * COEFFICIENTS_PER_BIQUAD_BLOCK] = 1.0;
     }
-
-    if (_crossfade_samples > 0) {
-        const double crossfade_samples_inverse = 1.0 / _crossfade_samples;
-        to_native(&crossfade_samples_inverse, &_crossfade_samples_inverse, 1);
-    }
 }
 
 template<uint32_t N, typename T>
@@ -199,13 +204,17 @@ const T *CascadeFilter<N, T>::get_coefficients() const {
 
 template<uint32_t N, typename T>
 void CascadeFilter<N, T>::init() {
-    _biquad_cascade.init(NUMBER_OF_BIQUAD_BLOCKS, _state);
+    _biquad_cascade.set_coefficients(_coefficients);
+
+    if (not _is_set_once) {
+        _biquad_cascade.init(NUMBER_OF_BIQUAD_BLOCKS, _state);
+    }
 }
 
 template<uint32_t N, typename T>
 void CascadeFilter<N, T>::reset() {
+    // Only reset internal counters/state of the biquad cascade; do not touch coefficients
     _biquad_cascade.reset();
-    _biquad_cascade.set_coefficients(_coefficients);
 }
 
 template<uint32_t N, typename T>
@@ -218,35 +227,19 @@ bool CascadeFilter<N, T>::push_biquad_coefficients(BiquadCoefficients &biquad_co
     _biquad_cascade.push_biquad_coefficients(new_block, biquad_coefficients);
 
     const uint32_t current_block_offset
-        = (_biquad_cascade.get_num_biquad_blocks_set() - 1) * COEFFICIENTS_PER_BIQUAD_BLOCK;
+            = (_biquad_cascade.get_num_biquad_blocks_set() - 1) * COEFFICIENTS_PER_BIQUAD_BLOCK;
 
     if (_crossfade_samples > 0) {
-        T diff[COEFFICIENTS_PER_BIQUAD_BLOCK];
         for (uint32_t i = 0; i < COEFFICIENTS_PER_BIQUAD_BLOCK; ++i) {
             const uint32_t idx = current_block_offset + i;
-            diff[i] = new_block[i] - _coefficients[idx];
+            const T diff = new_block[i] - _coefficients[idx];
+            scale(&diff, _crossfade_samples_inverse, &_coefficients_delta[idx], 1);
         }
-
-        scale(diff,
-              _crossfade_samples_inverse,
-              &_coefficients_delta[current_block_offset],
-              COEFFICIENTS_PER_BIQUAD_BLOCK);
 
         _crossfade_counter = 0;
     } else {
         for (uint32_t i = 0; i < COEFFICIENTS_PER_BIQUAD_BLOCK; i++) {
             _coefficients[current_block_offset + i] = new_block[i];
-        }
-    }
-
-    // TODO: fix this and remove
-    // Check for NaN or infinite values in the filter state
-    if (_biquad_cascade.get_num_biquad_blocks_set() == NUMBER_OF_BIQUAD_BLOCKS) {
-        for (auto &state: _state) {
-            if (!std::isfinite(state)) {
-                reset_state();
-                break;
-            }
         }
     }
 
@@ -257,12 +250,11 @@ template<uint32_t N, typename T>
 void CascadeFilter<N, T>::update_biquad_gain(double biquad_gain_inv) {
     _biquad_cascade.update_gain(biquad_gain_inv, _gain);
 
-    double gain_double;
-    to_double(&_gain, &gain_double, 1);
-
     if (_crossfade_samples > 0) {
         _gain_delta = _gain - _gain_crossfade;
         scale(&_gain_delta, _crossfade_samples_inverse, &_gain_delta, 1);
+    } else {
+        _gain_crossfade = _gain;
     }
 }
 
@@ -290,6 +282,13 @@ void CascadeFilter<N, T>::set_gain(double gain) {
 template<uint32_t N, typename T>
 void CascadeFilter<N, T>::set_crossfade_samples(uint32_t crossfade_samples) {
     _crossfade_samples = crossfade_samples;
+
+    if (_crossfade_samples > 0) {
+        double inv = 1.0 / static_cast<double>(_crossfade_samples);
+        to_native(&inv, &_crossfade_samples_inverse, 1);
+    } else {
+        _crossfade_samples_inverse = {};
+    }
 }
 
 template<uint32_t N, typename T>
@@ -362,6 +361,11 @@ T CascadeFilter<N, T>::process(const U *x, uint32_t num_samples) {
 
 template<uint32_t N, typename T>
 void CascadeFilter<N, T>::update_coefficients_crossfade() {
+    if (_crossfade_samples == 0) {
+        _gain_crossfade = _gain;
+        return;
+    }
+
     if (not _is_set_once) {
         _gain_crossfade = _gain;
 
@@ -381,7 +385,7 @@ void CascadeFilter<N, T>::update_coefficients_crossfade() {
             _coefficients[i] += _coefficients_delta[i];
         }
 
-        _crossfade_counter += 1;
+        _crossfade_counter++;
     }
 }
 

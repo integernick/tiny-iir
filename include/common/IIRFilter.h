@@ -32,7 +32,7 @@ public:
      * @return  The output sample.
      */
     template<typename U>
-    [[nodiscard]] T process(U x);
+    [[nodiscard]] U process(U x);
 
     /**
      * @brief   Process a batch of samples.
@@ -263,7 +263,6 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_fre
     _pass_type_data.init(normalized_cutoff_frequency);
 
     _cascade_filter.set_gain(get_analog_gain());
-    _cascade_filter.reset_blocks();
     _cascade_filter.reset();
 
     // Start from the lowest Q factor pole (closest to the real axis)
@@ -408,10 +407,14 @@ void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_pairs(const std::pair<PoleZeroPai
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<typename U>
-T IIRFilter<N, T, PASS_TYPE>::process(U x) {
+U IIRFilter<N, T, PASS_TYPE>::process(U x) {
     _cascade_filter.update_coefficients_crossfade();
-    return _cascade_filter.process(x);
+    const T out = _cascade_filter.process(x);
+    U out_native;
+    to_native<U>(&out, &out_native, 1);
+    return out_native;
 }
+
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 void IIRFilter<N, T, PASS_TYPE>::process(const T *x, T *out, uint32_t num_samples) {

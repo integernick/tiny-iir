@@ -4,6 +4,7 @@
 
 #include <dsp/filtering_functions.h>
 #include <cmath>
+#include <cstring>
 
 namespace tiny_iir {
 
@@ -46,7 +47,7 @@ template<typename T, typename U>
 static void to_native(const U *src, T *dst, uint32_t num_samples) {
     if constexpr (std::is_same_v<T, float>) {
         if constexpr (std::is_same_v<U, float>) {
-            memcpy(src, dst, num_samples * sizeof(float));
+            memcpy(dst, src, num_samples * sizeof(float));
         } else if constexpr (std::is_same_v<U, double>) {
             arm_f64_to_float(src, dst, num_samples);
         } else if constexpr (std::is_same_v<U, q31_t>) {
