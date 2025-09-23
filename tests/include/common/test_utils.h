@@ -57,10 +57,8 @@ void test_coeffs(FILTER &filter, const double expected_gain, const std::vector<d
 template<class FILTER>
 void test_response(FILTER &filter, const std::vector<double> &input_signal,
                    const std::vector<double> &expected_response, const double tolerance) {
-    using ValueType = typename FILTER::ValueType;
-
     const uint32_t response_size = expected_response.size();
-    std::vector<ValueType> response(response_size);
+    std::vector<double> response(response_size);
 
     filter.reset_state();
     for (int i = 0; i < input_signal.size(); ++i) {
@@ -68,17 +66,13 @@ void test_response(FILTER &filter, const std::vector<double> &input_signal,
     }
 
     for (uint32_t i = 0; i < response_size; ++i) {
-        double sample_as_double;
-        to_double(&response[i], &sample_as_double, 1);
-        EXPECT_NEAR(sample_as_double, expected_response[i], tolerance) << "Mismatch at sample index " << i;
+        EXPECT_NEAR(response[i], expected_response[i], tolerance) << "Mismatch at sample index " << i;
     }
 
     // Test batch processing
     filter.reset_state();
-    const auto last_output = filter.process(input_signal.data(), input_signal.size());
-    double last_output_as_double;
-    to_double(&last_output, &last_output_as_double, 1);
-    EXPECT_NEAR(last_output_as_double, expected_response.back(), tolerance) << "Mismatch in final returned sample";
+    const double last_output = filter.process(input_signal.data(), input_signal.size());
+    EXPECT_NEAR(last_output, expected_response.back(), tolerance) << "Mismatch in final returned sample";
 }
 
 template<class FILTER>
