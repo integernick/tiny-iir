@@ -19,7 +19,7 @@ public:
     template<FilterPassType PT = PASS_TYPE,
             typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
                                          || PT == FilterPassType::HIGH_PASS)>>
-    IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples = 0);
+    explicit IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples = 0);
 
     /**
      * @brief   Constructor.

@@ -32,7 +32,7 @@ public:
      * @return  The output sample.
      */
     template<typename U>
-    [[nodiscard]] T process(U x);
+    [[nodiscard]] U process(U x);
 
     /**
      * @brief   Process a batch of samples.
@@ -72,7 +72,7 @@ public:
      */
     template<typename U, typename = std::enable_if_t<(std::is_same_v<U, double>
                                                       && !std::is_same_v<T, double>)>>
-    [[nodiscard]] T process(const U *x, uint32_t num_samples);
+    [[nodiscard]] U process(const U *x, uint32_t num_samples);
 
     /**
      * @brief   Get the filter gain.
@@ -232,7 +232,7 @@ void IIRFilter<N, T, PASS_TYPE>::process(const U *x, T *out, uint32_t num_sample
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<typename U, typename>
-T IIRFilter<N, T, PASS_TYPE>::process(const U *x, uint32_t num_samples) {
+U IIRFilter<N, T, PASS_TYPE>::process(const U *x, uint32_t num_samples) {
     return _cascade_filter.process(x, num_samples);
 }
 
@@ -263,8 +263,8 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_fre
     _pass_type_data.init(normalized_cutoff_frequency);
 
     _cascade_filter.set_gain(get_analog_gain());
-    _cascade_filter.reset_blocks();
     _cascade_filter.reset();
+    _cascade_filter.init_coefficients();
 
     // Start from the lowest Q factor pole (closest to the real axis)
     if constexpr (N & 1) {
@@ -298,6 +298,7 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double cutlow_freq, double c
     _cascade_filter.set_gain(get_analog_gain());
     _cascade_filter.reset_blocks();
     _cascade_filter.reset();
+    _cascade_filter.init_coefficients();
 
     constexpr double MIN_FREQ = 1e-8;
     constexpr double MAX_FREQ = 2 * M_PI - MIN_FREQ;
@@ -408,15 +409,8 @@ void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_pairs(const std::pair<PoleZeroPai
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 template<typename U>
-T IIRFilter<N, T, PASS_TYPE>::process(U x) {
+U IIRFilter<N, T, PASS_TYPE>::process(U x) {
     _cascade_filter.update_coefficients_crossfade();
     return _cascade_filter.process(x);
 }
-
-template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-void IIRFilter<N, T, PASS_TYPE>::process(const T *x, T *out, uint32_t num_samples) {
-    _cascade_filter.update_coefficients_crossfade();
-    _cascade_filter.process(x, out, num_samples);
-}
-
 }
