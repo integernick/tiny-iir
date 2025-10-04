@@ -4,6 +4,8 @@
 
 #include <type_utils.h>
 
+#include <cstring>
+
 #ifndef TINY_IIR_CASCADE_FILTER_DEBUG
 #define TINY_IIR_CASCADE_FILTER_DEBUG    0
 #endif
