@@ -39,13 +39,9 @@ struct BiquadCoefficients {
  */
 template <typename T>
 T constrain(T value, T min, T max) {
-    if (value < min) {
-        return min;
-    } else if (value > max) {
-        return max;
-    } else {
-        return value;
-    }
+    return value < min ? min
+            : value > max ? max
+            : value;
 }
 
 }

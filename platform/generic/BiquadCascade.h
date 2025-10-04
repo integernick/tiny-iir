@@ -8,6 +8,17 @@
 
 namespace tiny_iir {
 
+using q31_t = int32_t;
+using q15_t = int16_t;
+
+/**
+ * @brief   Biquad cascade for double native type.
+ */
+template<typename T>
+struct coeffs_per_stage {
+    static constexpr uint32_t value = 5;
+};
+
 template<typename>
 struct BiquadCascade;
 
@@ -18,27 +29,38 @@ template<typename T = double>
 class BiquadCascade {
 public:
     /**
-     * @brief   Multiply two numbers (float version).
+     * @brief   Get the number of biquad blocks set.
      *
-     * @param x  The first number.
-     * @param y  The second number.
-     * @return  The product of the two numbers.
+     * @return  The number of biquad blocks set.
      */
-    [[nodiscard]] static T multiply(T x, T y) {
-        return x * y;
+    [[nodiscard]] uint32_t get_num_biquad_blocks_set() const {
+        return _num_biquad_blocks_set;
+    }
+
+    /**
+     * @brief   Set the coefficients.
+     *
+     * @param coefficients  The coefficients array.
+     */
+    void set_coefficients(double *coefficients) {
+        _coefficients = coefficients;
     }
 
     /**
      * @brief   Initialize the biquad cascade filter.
      *
      * @param num_stages  The number of stages.
-     * @param coefficients  The coefficients array.
      * @param delay_pipeline  The delay pipeline array.
      */
-    void init(uint8_t num_stages,
-                     T *coefficients,
-                     T *delay_pipeline) {
-        biquad_cascade_init(&_biquad_block, num_stages, coefficients, delay_pipeline);
+    void init(uint8_t num_stages, T *delay_pipeline) {
+        biquad_cascade_init(&_biquad_cascade_instance, num_stages, _coefficients, delay_pipeline);
+    }
+
+    /**
+     * @brief   Reset the filter state.
+     */
+    void reset() {
+        _num_biquad_blocks_set = 0;
     }
 
     /**
@@ -49,7 +71,7 @@ public:
      * @param block_size  The number of samples to process.
      */
     void process_cascade(T *src, T *dst, uint32_t block_size) {
-        biquad_cascade_process(&_biquad_block, src, dst, block_size);
+        biquad_cascade_process(&_biquad_cascade_instance, src, dst, block_size);
     }
 
     /**
@@ -59,41 +81,49 @@ public:
      * @param biquad_coefficients  The biquad coefficients.
      */
     void push_biquad_coefficients(T *coefficients, const BiquadCoefficients &biquad_coefficients) {
-        const double max_val = std::max({std::abs(biquad_coefficients.b0),
-                                         std::abs(biquad_coefficients.b1),
-                                         std::abs(biquad_coefficients.b2)});
-        BiquadCoefficients normalized_biquad_coefficients = {
-                .b0 = biquad_coefficients.b0,
-                .b1 = biquad_coefficients.b1,
-                .b2 = biquad_coefficients.b2,
-                .a1 = -biquad_coefficients.a1,
-                .a2 = -biquad_coefficients.a2
-        };
+        coefficients[0] = biquad_coefficients.b0;
+        coefficients[1] = biquad_coefficients.b1;
+        coefficients[2] = biquad_coefficients.b2;
+        coefficients[3] = -biquad_coefficients.a1;
+        coefficients[4] = -biquad_coefficients.a2;
 
-        if (max_val > 1.0) {
-            // Normalize coefficients if necessary
-            const double scale = 1.0 / max_val;
+        _num_biquad_blocks_set++;
+    }
 
-            normalized_biquad_coefficients.b0 *= scale;
-            normalized_biquad_coefficients.b1 *= scale;
-            normalized_biquad_coefficients.b2 *= scale;
-            //normalized_biquad_coefficients.a1 *= scale;
-            //normalized_biquad_coefficients.a2 *= scale;
+    /**
+     * @brief   Get the biquad coefficients (double representation).
+     *
+     * @param biquad_idx  The index of the biquad.
+     * @return  The biquad coefficients.
+     */
+    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const {
+        BiquadCoefficients coeffs;
+        to_double(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
+                  coeffs_per_stage<float>::value);
+        coeffs.a1 = -coeffs.a1;
+        coeffs.a2 = -coeffs.a2;
 
-            /* Accumulate the post shift for the next stage */
-        }
+        return coeffs;
+    }
 
-        coefficients[0] = static_cast<T>(normalized_biquad_coefficients.b0);
-        coefficients[1] = static_cast<T>(normalized_biquad_coefficients.b1);
-        coefficients[2] = static_cast<T>(normalized_biquad_coefficients.b2);
-        coefficients[3] = static_cast<T>(normalized_biquad_coefficients.a1);
-        coefficients[4] = static_cast<T>(normalized_biquad_coefficients.a2);
+    /**
+     * @brief   Update the cascade gain from the biquad gain inverse.
+     *
+     * @param biquad_gain_inv  The biquad gain inverse.
+     * @param gain  The cascade gain.
+     */
+    void update_gain(double biquad_gain_inv, double &gain) {
+        gain *= biquad_gain_inv;
     }
 
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = BiquadBlockDF2TCascade<T>::BLOCK_DELAY_LINE_SIZE;
 
+    static constexpr double UNITY = 1.0;
+
 private:
-    BiquadBlockDF2TCascade<T> _biquad_block;
+    BiquadBlockDF2TCascade<T> _biquad_cascade_instance;
+    double *_coefficients = nullptr;
+    uint32_t _num_biquad_blocks_set = 0;
 };
 
 }

@@ -147,6 +147,7 @@ public:
     }
 
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 2;
+
     static constexpr double UNITY = 1.0;
 
 private:
