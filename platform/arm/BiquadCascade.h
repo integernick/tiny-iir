@@ -37,7 +37,16 @@ ScientificNotation get_scientific_notation(double value) {
 }
 } // namespace
 
-static constexpr unsigned int COEFFICIENTS_PER_BIQUAD_BLOCK = 5;
+template<typename T>
+struct coeffs_per_stage {
+    // arm_biquad_casd_df1_inst_q31 expects [b0, b1, b2, a1, a2]
+    static constexpr uint32_t value = 5;
+};
+template<>
+struct coeffs_per_stage<q15_t> {
+    // arm_biquad_casd_df1_inst_q15 expects [b0, 0, b1, b2, a1, a2]
+    static constexpr uint32_t value = 6;
+};
 
 template<typename>
 struct BiquadCascade;
@@ -111,6 +120,28 @@ public:
         _num_biquad_blocks_set++;
     }
 
+    /**
+     * @brief   Get the biquad coefficients (double representation).
+     *
+     * @param biquad_idx  The index of the biquad.
+     * @return  The biquad coefficients.
+     */
+    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const {
+        BiquadCoefficients coeffs;
+        to_double(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
+                  coeffs_per_stage<float>::value);
+        coeffs.a1 = -coeffs.a1;
+        coeffs.a2 = -coeffs.a2;
+
+        return coeffs;
+    }
+
+    /**
+     * @brief   Update the cascade gain from the biquad gain inverse.
+     *
+     * @param biquad_gain_inv  The biquad gain inverse.
+     * @param gain  The cascade gain.
+     */
     static void update_gain(double biquad_gain_inv, float &gain) {
         gain *= static_cast<float>(biquad_gain_inv);
     }
@@ -193,6 +224,28 @@ public:
         _num_biquad_blocks_set++;
     }
 
+    /**
+     * @brief   Get the biquad coefficients (double representation).
+     *
+     * @param biquad_idx  The index of the biquad.
+     * @return  The biquad coefficients.
+     */
+    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const {
+        BiquadCoefficients coeffs;
+        to_double(&_coefficients[biquad_idx * coeffs_per_stage<double>::value], &coeffs.b0,
+                  coeffs_per_stage<double>::value);
+        coeffs.a1 = -coeffs.a1;
+        coeffs.a2 = -coeffs.a2;
+
+        return coeffs;
+    }
+
+    /**
+     * @brief   Update the cascade gain from the biquad gain inverse.
+     *
+     * @param biquad_gain_inv  The biquad gain inverse.
+     * @param gain  The cascade gain.
+     */
     static void update_gain(double biquad_gain_inv, double &gain) {
         gain *= biquad_gain_inv;
     }
@@ -307,21 +360,40 @@ public:
         normalized_biquad_coefficients.a2 *= scale;
 
 
-        arm_f64_to_q31(&normalized_biquad_coefficients.b0, coefficients, COEFFICIENTS_PER_BIQUAD_BLOCK);
+        arm_f64_to_q31(&normalized_biquad_coefficients.b0, coefficients, coeffs_per_stage<q31_t>::value);
 
         _num_biquad_blocks_set++;
-
-        double coeffs_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
-        to_double(coefficients, coeffs_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
     }
 
+    /**
+     * @brief   Get the biquad coefficients (double representation).
+     *
+     * @param biquad_idx  The index of the biquad.
+     * @return  The biquad coefficients.
+     */
+    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const {
+        BiquadCoefficients coeffs;
+        to_double(&_coefficients[biquad_idx * coeffs_per_stage<q31_t>::value], &coeffs.b0,
+                  coeffs_per_stage<q31_t>::value);
+        coeffs.a1 = -coeffs.a1;
+        coeffs.a2 = -coeffs.a2;
+
+        return coeffs;
+    }
+
+    /**
+     * @brief   Update the cascade gain from the biquad gain inverse.
+     *
+     * @param biquad_gain_inv  The biquad gain inverse.
+     * @param gain  The cascade gain.
+     */
     void update_gain(double biquad_gain_inv, q31_t &gain) {
         double g = biquad_gain_inv;
         int8_t e = 0;
 
         if (g > 1.0) {
-            e = (int8_t)std::ceil(std::log2(g));
-            e = constrain(e, (int8_t)0, (int8_t)30);
+            e = (int8_t) std::ceil(std::log2(g));
+            e = constrain(e, static_cast<int8_t>(0), static_cast<int8_t>(30));
             g = std::ldexp(g, -e); // g := g / 2^e  in (0,1]
         }
 
@@ -342,18 +414,24 @@ public:
         int8_t hr = headroom_q31(prod);
         int8_t absorb = (e < hr) ? e : hr;
         if (absorb > 0) {
-            prod = (q31_t)((uint32_t)prod << absorb);
+            prod = (q31_t) ((uint32_t) prod << absorb);
             e -= absorb;
         }
 
         gain = prod;
-        _gain_shift = (int8_t)(_gain_shift + e);
+        _gain_shift = (int8_t) (_gain_shift + e);
     }
 
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = 4;
     static constexpr q31_t UNITY = Q31_MAX;
 
 private:
+    /**
+     * @brief   Computes the number of bits that it is safe to shift the input value left.
+     *
+     * @param x The q15_t input value.
+     * @return  The headroom of the input value.
+     */
     static inline int8_t headroom_q31(q31_t x) {
         if (x == 0) {
             return 30;
@@ -366,11 +444,16 @@ private:
         return static_cast<int8_t>(hr);
     }
 
+    /**
+     * @brief   Update the saved post-shift value.
+     *
+     * @param new_shift The new post-shift value.
+     */
     void update_post_shift(int8_t new_shift) {
         if (new_shift > _post_shift) {
             const int8_t delta_shift = new_shift - _post_shift;
             _post_shift = new_shift;
-            const uint32_t already_set_block_size = _num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK;
+            const uint32_t already_set_block_size = _num_biquad_blocks_set * coeffs_per_stage<q31_t>::value;
             arm_shift_q31(_coefficients, static_cast<int8_t>(-delta_shift),
                           _coefficients, already_set_block_size);
         }
@@ -464,7 +547,6 @@ public:
                                          std::abs(biquad_coefficients.b2),
                                          std::abs(biquad_coefficients.a1),
                                          std::abs(biquad_coefficients.a2)});
-
         double scale;
 
         if (max_val > 1.0) {
@@ -483,25 +565,48 @@ public:
         normalized_biquad_coefficients.a1 *= scale;
         normalized_biquad_coefficients.a2 *= scale;
 
-        arm_f64_to_q15(&normalized_biquad_coefficients.b0, coefficients, COEFFICIENTS_PER_BIQUAD_BLOCK);
+        // arm_biquad_casd_df1_inst_q15 expects [b0, 0, b1, b2, a1, a2]
+        arm_f64_to_q15(&normalized_biquad_coefficients.b0, coefficients, 1); // b0
+        coefficients[1] = 0;
+        arm_f64_to_q15(&normalized_biquad_coefficients.b1, coefficients + 2, 4); // b1, b2, a1, a2
 
         _num_biquad_blocks_set++;
-
-        double coeffs_double[COEFFICIENTS_PER_BIQUAD_BLOCK];
-        to_double(coefficients, coeffs_double, COEFFICIENTS_PER_BIQUAD_BLOCK);
     }
 
+    /**
+     * @brief   Get the biquad coefficients (double representation).
+     *
+     * @param biquad_idx  The index of the biquad.
+     * @return  The biquad coefficients.
+     */
+    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const {
+        BiquadCoefficients coeffs;
+        // arm_biquad_casd_df1_inst_q15 holds [b0, 0, b1, b2, a1, a2]
+        to_double(&_coefficients[biquad_idx * coeffs_per_stage<q15_t>::value], &coeffs.b0, 1);
+        to_double(&_coefficients[biquad_idx * coeffs_per_stage<q15_t>::value + 2], &coeffs.b1, 4);
+        coeffs.a1 = -coeffs.a1;
+        coeffs.a2 = -coeffs.a2;
+
+        return coeffs;
+    }
+
+    /**
+     * @brief   Update the cascade gain from the biquad gain inverse.
+     *
+     * @param biquad_gain_inv  The biquad gain inverse.
+     * @param gain  The cascade gain.
+     */
     void update_gain(double biquad_gain_inv, q15_t &gain) {
         double g = biquad_gain_inv;
         int8_t e = 0;
 
         if (g > 1.0) {
             e = static_cast<int8_t>(std::ceil(std::log2(g)));
-            e = constrain(e, (int8_t)0, (int8_t)15);
+            e = constrain(e, static_cast<int8_t>(0), static_cast<int8_t>(14));
             g = std::ldexp(g, -e); // g := g / 2^e  in (0,1]
         }
 
-        // Clamp mantissa away from 1.0 to avoid rounding to 2^31 in Q15
+        // Clamp mantissa away from 1.0 to avoid rounding to 2^15 in Q15
         const double one_minus = std::nextafter(1.0, 0.0);
         if (g > one_minus) {
             g = one_minus;
@@ -518,7 +623,7 @@ public:
         int8_t hr = headroom_q15(prod);
         int8_t absorb = (e < hr) ? e : hr;
         if (absorb > 0) {
-            prod = static_cast<q15_t>((uint32_t)prod << absorb);
+            prod = static_cast<q15_t>((uint32_t) prod << absorb);
             e -= absorb;
         }
 
@@ -530,29 +635,45 @@ public:
     static constexpr q15_t UNITY = Q15_MAX;
 
 private:
+    /**
+     * @brief   Computes the number of bits that it is safe to shift the input value left.
+     *
+     * @param x The q15_t input value.
+     * @return  The headroom of the input value.
+     */
     static inline int8_t headroom_q15(q15_t x) {
         if (x == 0) {
-            return 15;
+            return 14; // 1 sign + 15 frac -> max safe left shifts is 14
         }
 
-        const uint32_t ax = (x < 0) ? static_cast<uint32_t>(-x) : static_cast<uint32_t>(x);
-        int lz = __builtin_clz(ax);
-        int hr = lz - 1;
-        hr = constrain(hr, 0, 15);
+        const uint32_t ax = (x < 0)
+                            ? static_cast<uint32_t>(-static_cast<int32_t>(x))
+                            : static_cast<uint32_t>(x);
+
+        // For a 16-bit magnitude in a 32-bit container:
+        // hr = clz(ax) - (32 - 16) - 1 = clz(ax) - 17
+        int hr = static_cast<int>(__builtin_clz(ax)) - 17;
+        if (hr < 0) hr = 0;
+        if (hr > 14) hr = 14;
         return static_cast<int8_t>(hr);
     }
 
+    /**
+     * @brief   Update the saved post-shift value.
+     *
+     * @param new_shift The new post-shift value.
+     */
     void update_post_shift(int8_t new_shift) {
         if (new_shift > _post_shift) {
             const int8_t delta_shift = new_shift - _post_shift;
             _post_shift = new_shift;
-            const uint32_t already_set_block_size = _num_biquad_blocks_set * COEFFICIENTS_PER_BIQUAD_BLOCK;
+            const uint32_t already_set_block_size = _num_biquad_blocks_set * coeffs_per_stage<q15_t>::value;
             arm_shift_q15(_coefficients, static_cast<int8_t>(-delta_shift),
                           _coefficients, already_set_block_size);
         }
     }
 
-    arm_biquad_casd_df1_inst_q15 _cascade_instance;
+    arm_biquad_casd_df1_inst_q15 _cascade_instance{};
     q15_t *_coefficients = nullptr;
     uint32_t _num_biquad_blocks_set = 0;
     int8_t _post_shift = 0;

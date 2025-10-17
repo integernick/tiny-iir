@@ -89,6 +89,14 @@ public:
     [[nodiscard]] const T *get_coefficients() const;
 
     /**
+     * @brief   Get the biquad coefficients (double representation).
+     *
+     * @param biquad_idx  The index of the biquad.
+     * @return  The biquad coefficients.
+     */
+    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const;
+
+    /**
      * @brief   Print filter coefficients.
      */
     void print_coefficients() const;
@@ -196,13 +204,12 @@ private:
     template<FilterPassType PT = PASS_TYPE,
             typename = std::enable_if_t<((PT == FilterPassType::BAND_PASS
                                           || PT == FilterPassType::BAND_STOP)
-                                          && N & 1)>>
+                                         && N & 1)>>
     void add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs);
 
     PassTypeData<PASS_TYPE, N> _pass_type_data;
     FrequencyConfig _frequency_config;
 };
-
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 double IIRFilter<N, T, PASS_TYPE>::get_gain() const {
@@ -212,6 +219,11 @@ double IIRFilter<N, T, PASS_TYPE>::get_gain() const {
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
 const T *IIRFilter<N, T, PASS_TYPE>::get_coefficients() const {
     return _cascade_filter.get_coefficients();
+}
+
+template<uint32_t N, typename T, FilterPassType PASS_TYPE>
+BiquadCoefficients IIRFilter<N, T, PASS_TYPE>::get_biquad_coefficients(uint32_t biquad_idx) const {
+    return _cascade_filter.get_biquad_coefficients(biquad_idx);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>

@@ -57,7 +57,7 @@ static constexpr uint32_t NUM_OF_LANDEN_ITERATIONS = 5;
  * @param k1    Elliptic modulus.
  * @return  Value of the elliptic integral of the first kind.
  */
-[[nodiscard]] double calculate_elliptic_integral(double k) {
+[[nodiscard]] inline double calculate_elliptic_integral(double k) {
     constexpr double EPS = 1e-6;
     if (k < EPS) {
         k = EPS;
@@ -94,7 +94,7 @@ static constexpr uint32_t NUM_OF_LANDEN_ITERATIONS = 5;
  * @param seq Pointer to the sequence array.
  * @param k   Elliptic modulus.
  */
-static void init_landen_sequence(double *seq, double k) {
+static inline void init_landen_sequence(double *seq, double k) {
     seq[0] = landen_next(k);
     for (uint32_t i = 1; i < NUM_OF_LANDEN_ITERATIONS; ++i) {
         seq[i] = landen_next(seq[i - 1]);
@@ -108,7 +108,7 @@ static void init_landen_sequence(double *seq, double k) {
  * @param k Elliptic modulus.
  * @return  The elliptic Jacobi function sn(u, k) value.
  */
-[[nodiscard]] static Complex sn(Complex u, double k) {
+[[nodiscard]] inline static Complex sn(Complex u, double k) {
     Complex w = std::sin(u * M_PI_2);
 
     double landen_seq[NUM_OF_LANDEN_ITERATIONS];
@@ -128,7 +128,7 @@ static void init_landen_sequence(double *seq, double k) {
  * @param k Elliptic modulus.
  * @return  The elliptic Jacobi function cd(u, k) value.
  */
-[[nodiscard]] Complex cd(Complex u, double k) {
+[[nodiscard]] inline Complex cd(Complex u, double k) {
     return sn(u + 1.0, k); // Using cd(z, k) = sn(z + K, k)
 }
 
@@ -139,7 +139,7 @@ static void init_landen_sequence(double *seq, double k) {
  * @param k1_prime Complement of (eps_p / eps_s).
  * @return  The ratio of (wp / ws).
  */
-[[nodiscard]] double solve_degree_equation(uint32_t N, double k1_prime) {
+[[nodiscard]] inline double solve_degree_equation(uint32_t N, double k1_prime) {
     const uint32_t L = N / 2;
     double k_prime = std::pow(k1_prime, N);
 
@@ -162,7 +162,7 @@ static void init_landen_sequence(double *seq, double k) {
  *          and K_prime is the elliptic integral of complement of the elliptic modulus.
  * @return  The argument u of the elliptic Jacobi function w = sn(u, k) value.
  */
-[[nodiscard]] Complex asn(Complex w, double k, double R) {
+[[nodiscard]] inline Complex asn(Complex w, double k, double R) {
     double v_prev;  // v_{n-1}
     double v_n = k; // v_{n}
 

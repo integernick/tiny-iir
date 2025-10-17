@@ -1,5 +1,5 @@
 # tiny-iir
-Tiny-IIR is a minimal C++ library for generating and applying IIR filters 
+Tiny-IIR is a minimalistic C++ library for generating and applying IIR filters 
 with a focus on real-time cutoff frequency updates and embedded-friendly implementation.
 
 Supported filter types:
@@ -16,7 +16,18 @@ Supported filter pass types:
 
 Supported data types:
 - Floating-point (float, double)
-- Fixed-point (Q31, CMSIS-DSP only)
+- Fixed-point (Q31 and Q15, CMSIS-DSP only)
+
+## Configure chunk size
+
+`tiny-iir` uses a small, bounded on-stack scratch buffer for block processing. 
+Its size is controlled by the compile-time macro `TINY_IIR_CHUNK_SIZE`. 
+The headers default to `32` if you don't define it.
+
+```cmake
+# Choose bounded on‑stack chunk size (default is 32)
+target_compile_definitions(my-project PRIVATE TINY_IIR_CHUNK_SIZE=128)
+```
 
 ## Including the library with CMSIS-DSP
 
@@ -26,6 +37,7 @@ To use the library with CMSIS-DSP, simply add the following lines to your `CMake
 set(TINY_IIR_CMSIS_CORE_DIR path/to/CMSIS/Include)
 add_subdirectory(path/to/tiny-iir)
 target_link_libraries(my-project PRIVATE tiny_iir_core)
+target_compile_definitions(my-project PRIVATE TINY_IIR_CHUNK_SIZE=128) # optional: override default 32
 ```
 
 ## Including the library without CMSIS-DSP
@@ -33,9 +45,9 @@ target_link_libraries(my-project PRIVATE tiny_iir_core)
 To include the library in your project, simply add the following lines to your `CMakeLists.txt` file:
 
 ```cmake
-set(BUILD_WITH_CMSIS OFF CACHE BOOL "Build using CMSIS-DSP")
-add_subdirectory(path/to/tiny-iir)
+set(TINY_IIR_BUILD_WITH_CMSIS OFF CACHE BOOL "Build using CMSIS-DSP")
 target_link_libraries(my-project PRIVATE tiny_iir_core)
+target_compile_definitions(my-project PRIVATE TINY_IIR_CHUNK_SIZE=128) # optional: override default 32
 ```
 
 To design a filter simply include a corresponding header file and instantiate the filter object.
@@ -130,7 +142,7 @@ python3 tools/plot_sos.py tools/demo.json cheby2_bpf
 
 ![Figure_2.png](figures/cheby2_bpf.png)
 
-### Example 4: Chebyshev Elliptic Band-Stop Filter
+### Example 4: Elliptic Band-Stop Filter
 
 ```sh
 python3 tools/plot_sos.py tools/demo.json elliptic_bsf

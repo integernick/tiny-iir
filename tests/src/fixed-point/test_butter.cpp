@@ -5,10 +5,6 @@
 
 using namespace tiny_iir;
 
-/* TODO: Check why MATLAB calculates b0, b1, b2 coefficients that slightly differ from 1.0 or 2.0 by about 0.01
-   Therefore the impulse response is also slightly different! */
-constexpr double TOL = 1e-4;
-
 TEST(ButterTest, ButterLPFQ31Coeffs) {
     IIRButter<7, q31_t> butter_lpf(0.75);
     constexpr double GAIN_EXPECTED = 0.161071111239757;
@@ -20,7 +16,7 @@ TEST(ButterTest, ButterLPFQ31Coeffs) {
             1.0, 2.0, 1.0, 1.0, 1.22194528464162, 0.728091594018049,
     };
     normalize_coeffs(expected_coeffs);
-    test_coeffs(butter_lpf, GAIN_EXPECTED, expected_coeffs, TOL);
+    test_coeffs(butter_lpf, GAIN_EXPECTED, expected_coeffs, TOL_Q31);
 }
 
 TEST(ButterTest, ButterLPFQ31ImpulseResponse) {
@@ -34,7 +30,7 @@ TEST(ButterTest, ButterLPFQ31ImpulseResponse) {
             0.0413620861236263, -0.0266064909895995, 0.00207667261047778, 0.0170202884196747,
     };
 
-    test_impulse_response(butter_lpf, expected, TOL);
+    test_impulse_response(butter_lpf, expected, TOL_Q15);
 }
 
 TEST(ButterTest, ButterLPFQ15Coeffs) {
@@ -48,7 +44,7 @@ TEST(ButterTest, ButterLPFQ15Coeffs) {
             1.0, 2.0, 1.0, 1.0, 1.22194528464162, 0.728091594018049,
     };
     normalize_coeffs(expected_coeffs);
-    test_coeffs(butter_lpf, GAIN_EXPECTED, expected_coeffs, TOL);
+    test_coeffs(butter_lpf, GAIN_EXPECTED, expected_coeffs, TOL_Q15);
 }
 
 TEST(ButterTest, ButterLPFQ15ImpulseResponse) {
@@ -62,5 +58,5 @@ TEST(ButterTest, ButterLPFQ15ImpulseResponse) {
             0.0413620861236263, -0.0266064909895995, 0.00207667261047778, 0.0170202884196747,
     };
 
-    test_impulse_response(butter_lpf, expected, TOL);
+    test_impulse_response(butter_lpf, expected, TOL_Q15);
 }
