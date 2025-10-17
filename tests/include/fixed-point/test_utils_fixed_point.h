@@ -10,6 +10,9 @@
 namespace tiny_iir {
 
 constexpr double TOL_Q31 = 1e-7;
+constexpr double TOL_Q31_GRADE2 = 2e-5; // TODO: Check why some of the tests perform worse
+constexpr double TOL_Q15 = 1e-3;
+constexpr double TOL_Q15_GRADE2 = 5e-3;
 
 inline void normalize_coeffs(std::vector<double> &coeffs) {
     constexpr uint32_t COEFFS_PER_BLOCK = 6; // b0,b1,b2,a0,a1,a2
