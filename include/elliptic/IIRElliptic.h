@@ -18,52 +18,44 @@ template<uint32_t N = 2,
 class IIRElliptic : public IIRFilter<N, T, PASS_TYPE> {
 public:
     /**
-     * @brief   Constructor.
+     * @brief   Constructor (low-pass and high-pass).
      *
      * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
-                                         || PT == FilterPassType::HIGH_PASS)>>
     IIRElliptic(double normalized_cutoff_frequency, double pass_ripple_db, double stop_ripple_db,
-                uint32_t crossfade_samples = 0);
+                uint32_t crossfade_samples = 0) requires (
+    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
 
     /**
-     * @brief   Constructor.
+     * @brief   Constructor (band-pass and band-stop).
      *
      * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
-                                         || PT == FilterPassType::BAND_STOP)>>
     IIRElliptic(double normalized_lowcut_freq, double normalized_highcut_freq,
-                double pass_ripple_db, double stop_ripple_db, uint32_t crossfade_samples = 0);
+                double pass_ripple_db, double stop_ripple_db, uint32_t crossfade_samples = 0) requires (
+    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
 
     /**
-     * @brief   Configure the filter.
+     * @brief   Configure the filter (low-pass and high-pass).
      *
      * @param normalized_cutoff_frequency  Normalized cutoff frequency.
      * @param pass_ripple_db  Passband ripple in dB.
      * @param stop_ripple_db  Stopband ripple in dB.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
-                                         || PT == FilterPassType::HIGH_PASS)>>
-    void configure(double normalized_cutoff_frequency, double pass_ripple_db, double stop_ripple_db);
+    void configure(double normalized_cutoff_frequency, double pass_ripple_db, double stop_ripple_db) requires (
+    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
 
     /**
-     * @brief   Configure the filter.
+     * @brief   Configure the filter (band-pass and band-stop).
      *
      * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
      * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
      * @param pass_ripple_db  Passband ripple in dB.
      * @param stop_ripple_db  Stopband ripple in dB.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
-                                         || PT == FilterPassType::BAND_STOP)>>
     void configure(double normalized_lowcut_freq, double normalized_highcut_freq,
-                   double pass_ripple_db, double stop_ripple_db);
+                   double pass_ripple_db, double stop_ripple_db) requires (
+    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
 
 private:
     static constexpr uint32_t L = N / 2;
@@ -87,25 +79,26 @@ private:
 
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
 IIRElliptic<N, T, PASS_TYPE>::IIRElliptic(double normalized_cutoff_frequency, double pass_ripple_db,
-                                          double stop_ripple_db, uint32_t crossfade_samples)
+                                          double stop_ripple_db, uint32_t crossfade_samples) requires (
+PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
         : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
     configure(normalized_cutoff_frequency, pass_ripple_db, stop_ripple_db);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
 IIRElliptic<N, T, PASS_TYPE>::IIRElliptic(double normalized_lowcut_freq, double normalized_highcut_freq,
-                                          double pass_ripple_db, double stop_ripple_db, uint32_t crossfade_samples)
+                                          double pass_ripple_db, double stop_ripple_db,
+                                          uint32_t crossfade_samples) requires (
+PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP)
         : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
     configure(normalized_lowcut_freq, normalized_highcut_freq, pass_ripple_db, stop_ripple_db);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
 void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency,
-                                             double pass_ripple_db, double stop_ripple_db) {
+                                             double pass_ripple_db, double stop_ripple_db) requires (
+PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
     pass_ripple_db = std::abs(pass_ripple_db);
     stop_ripple_db = std::abs(stop_ripple_db);
     if (pass_ripple_db != _pass_ripple_db || stop_ripple_db != _stop_ripple_db) {
@@ -117,10 +110,9 @@ void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_cutoff_frequency,
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
-void
-IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double normalized_highcut_freq,
-                                        double pass_ripple_db, double stop_ripple_db) {
+void IIRElliptic<N, T, PASS_TYPE>::configure(double normalized_lowcut_freq, double normalized_highcut_freq,
+                                             double pass_ripple_db, double stop_ripple_db) requires (
+PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
     pass_ripple_db = std::abs(pass_ripple_db);
     stop_ripple_db = std::abs(stop_ripple_db);
     if (pass_ripple_db != _pass_ripple_db || stop_ripple_db != _stop_ripple_db) {
