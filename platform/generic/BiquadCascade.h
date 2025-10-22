@@ -40,7 +40,7 @@ public:
      *
      * @param coefficients  The coefficients array.
      */
-    void set_coefficients(DESIGN_T *coefficients) {
+    void set_coefficients(T *coefficients) {
         _coefficients = coefficients;
     }
 

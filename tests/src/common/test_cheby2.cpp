@@ -19,7 +19,7 @@ TEST(Cheby2Test, Cheby2LPFDoubleCoeffs) {
 }
 
 TEST(Cheby2Test, Cheby2HPFDoubleCoeffs) {
-    IIRCheby2<7, double, FilterPassType::HIGH_PASS> cheby2_hpf(0.2, 30.0);
+    IIRCheby2<7, double, FilterPassType::HighPass> cheby2_hpf(0.2, 30.0);
     EXPECT_NEAR(cheby2_hpf.get_gain(), 0.414076474853479, 1e-10) << "Gain mismatch (HPF)";
 
     constexpr double GAIN_EXPECTED = 0.414076474853479;
@@ -34,7 +34,7 @@ TEST(Cheby2Test, Cheby2HPFDoubleCoeffs) {
 }
 
 TEST(Cheby2Test, Cheby2BPFImpulseResponse) {
-    IIRCheby2<7, double, FilterPassType::BAND_PASS> cheby2_bpf(0.05, 0.35, 30.0);
+    IIRCheby2<7, double, FilterPassType::BandPass> cheby2_bpf(0.05, 0.35, 30.0);
 
     const std::vector<double> expected = {
             0.0513292514145267, 0.0963269056660768, 0.122911666862606, 0.104800727679869,
@@ -48,7 +48,7 @@ TEST(Cheby2Test, Cheby2BPFImpulseResponse) {
 }
 
 TEST(Cheby2Test, Cheby2BSFImpulseResponse) {
-    IIRCheby2<7, double, FilterPassType::BAND_STOP> cheby2_bsf(0.05, 0.35, 30.0);
+    IIRCheby2<7, double, FilterPassType::BandStop> cheby2_bsf(0.05, 0.35, 30.0);
 
     const std::vector<double> expected = {
             0.268494049405138, -0.539362745210064, 0.381062283143844, 0.130409607636981,

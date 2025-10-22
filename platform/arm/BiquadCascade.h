@@ -189,7 +189,7 @@ public:
      * @param num_stages      The number of stages.
      * @param delay_pipeline  The delay pipeline array.
      */
-    void init(uint8_t num_stages, DESIGN_T *delay_pipeline) {
+    void init(uint8_t num_stages, double *delay_pipeline) {
         arm_biquad_cascade_df2T_init_f64(
                 &_cascade_instance, num_stages, _coefficients, delay_pipeline);
     }

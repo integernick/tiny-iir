@@ -18,7 +18,9 @@ Supported data types:
 - Floating-point (float, double)
 - Fixed-point (Q31 and Q15, CMSIS-DSP only)
 
-## Configure chunk size
+## integration
+
+### configure chunk size
 
 `tiny-iir` uses a small, bounded on-stack scratch buffer for block processing. 
 Its size is controlled by the compile-time macro `TINY_IIR_CHUNK_SIZE`. 
@@ -29,7 +31,7 @@ The headers default to `32` if you don't define it.
 target_compile_definitions(my-project PRIVATE TINY_IIR_CHUNK_SIZE=128)
 ```
 
-## Including the library with CMSIS-DSP
+### including the library with cmsis-dsp
 
 To use the library with CMSIS-DSP, simply add the following lines to your `CMakeLists.txt` file:
 
@@ -40,7 +42,7 @@ target_link_libraries(my-project PRIVATE tiny_iir_core)
 target_compile_definitions(my-project PRIVATE TINY_IIR_CHUNK_SIZE=128) # optional: override default 32
 ```
 
-## Including the library without CMSIS-DSP
+### including the library without cmsis-dsp
 
 To include the library in your project, simply add the following lines to your `CMakeLists.txt` file:
 
@@ -57,7 +59,7 @@ To design a filter simply include a corresponding header file and instantiate th
 
 /* Create an order 6 Chebyshev Type II filter with a passband of 0.1, 
    a stopband of 60dB and 100 crossfade samples */
-tiny_iir::IIRCheby2<6, double, tiny_iir::FilterPassType::LOW_PASS> iir_cheby2{
+tiny_iir::IIRCheby2<6, double, tiny_iir::FilterPassType::LowPass> iir_cheby2{
     0.1, 60.0, 100
 };
 ```
@@ -67,7 +69,7 @@ tiny_iir::IIRCheby2<6, double, tiny_iir::FilterPassType::LOW_PASS> iir_cheby2{
 
 /* Create an order 9 elliptic filter with a passband of [0.4, 0.6], 
    passband ripple of 0.1dB, stopband of 60dB (no crossfade) */
-tiny_iir::IIRElliptic<9, float, tiny_iir::FilterPassType::BAND_PASS> iir_elliptic{
+tiny_iir::IIRElliptic<9, float, tiny_iir::FilterPassType::BandPass> iir_elliptic{
     0.4, 0.6, 0.1, 60.0
 };
 ```
@@ -89,7 +91,9 @@ const double input[NUM_SAMPLES] = {1.0, 2.0, 3.0, 4.0};
 double output = iir_cheby2.process(input, NUM_SAMPLES);
 ```
 
-## Advanced Usage
+## advanced usage
+
+### (re-)configuration 
 
 The filter class provides a number of methods to configure the filter, reset the filter state, and access the filter coefficients.
 ```cpp
@@ -103,7 +107,20 @@ iir_cheby2.configure(0.2, 50.0);
 iir_cheby2.reset_state();
 ```
 
-## Plotting tool
+### design precision (DESIGN_T template parameter)
+
+All filters accept an optional 4th template parameter DESIGN_T (float or double, default double) 
+that controls design-time math only (prototype, transforms, math functions). 
+The runtime/sample type remains T.
+* Use DESIGN_T = float to reduce code size and speed up reconfiguration on MCUs.
+* Use DESIGN_T = double for maximum numerical robustness.
+
+```cpp
+// Order 6 Chebyshev II, runtime in Q31, design in float
+tiny_iir::IIRCheby2<6, q31_t, tiny_iir::FilterPassType::LowPass, float> iir{0.1f, 60.0f};
+```
+
+## plotting tool
 
 A simple Python script is provided to plot the frequency response of the filter.
 To use it, simply run the following command:
@@ -120,21 +137,21 @@ run the following command:
 python3 tools/plot_sos.py tools/demo.json [demo_preset_key]
 ```
 
-### Example 1: Butterworth Low-Pass Filter
+### example 1: butterworth low-pass filter
 ```sh
 python3 tools/plot_sos.py tools/demo.json butter_lpf
 ```
 
 ![Figure_0.png](figures/butter_lpf.png)
 
-### Example 2: Chebyshev Type I High-Pass Filter
+### example 2: chebyshev type 1 high-pass filter
 ```sh
 python3 tools/plot_sos.py tools/demo.json cheby1_hpf
 ```
 
 ![Figure_1.png](figures/cheby1_hpf.png)
 
-### Example 3: Chebyshev Type II Band-Pass Filter
+### example 3: chebyshev type 2 band-pass filter
 
 ```sh
 python3 tools/plot_sos.py tools/demo.json cheby2_bpf
@@ -142,7 +159,7 @@ python3 tools/plot_sos.py tools/demo.json cheby2_bpf
 
 ![Figure_2.png](figures/cheby2_bpf.png)
 
-### Example 4: Elliptic Band-Stop Filter
+### example 4: elliptic band-stop filter
 
 ```sh
 python3 tools/plot_sos.py tools/demo.json elliptic_bsf
@@ -150,13 +167,13 @@ python3 tools/plot_sos.py tools/demo.json elliptic_bsf
 
 ![Figure_3.png](figures/elliptic_bsf.png)
 
-## Filter Designer CLI Tool
+## filter designer cli tool
 
 The filter designer CLI tool is a command-line tool that generates filter coefficients 
 in JSON format for a given filter type and pass type. These coefficients can then be used 
 as input to the plotting tool `plot_sos.py`.
 
-### Usage
+### usage
 
 Run the tool with the `--help` option to see all the available options:
 
@@ -180,7 +197,7 @@ Usage:
       --help         help
 ```
 
-### Example
+### example
 ```sh
 tiny-iir-designer-cli -t cheby1 -p bsf -o 13 -l 0.2 -h 0.9 --ripple 0.01 --stop 40 -j out.json
 ```

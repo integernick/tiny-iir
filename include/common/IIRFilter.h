@@ -13,7 +13,7 @@ namespace tiny_iir {
  * @tparam PASS_TYPE   Pass type (low, high, band-pass, band-stop).
  * @tparam DESIGN_T    The filter design type.
  */
-template<uint32_t N, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS,
+template<uint32_t N, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
 class IIRFilter {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
@@ -147,7 +147,7 @@ protected:
      * @param normalized_cutoff_frequency  Normalized cutoff frequency.
      */
     void calculate_cascades(DT normalized_cutoff_frequency) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass);
 
     /**
      * @brief   Calculate biquad cascades coefficients (band-pass and band-stop).
@@ -156,7 +156,7 @@ protected:
      * @param cuthigh_freq  High cutoff frequency.
      */
     void calculate_cascades(DT cutlow_freq, DT cuthigh_freq) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
     CascadeFilter<PassTypeData<PASS_TYPE, N, DT>::CASCADE_ORDER, T, DT> _cascade_filter;
 
@@ -165,8 +165,8 @@ protected:
 
 private:
     struct FrequencyConfig {
-        DT w1 = 0.0;
-        DT w2 = 0.0;
+        DT w1{};
+        DT w2{};
     };
 
     /**
@@ -200,7 +200,7 @@ private:
      * @param pole_zero_pairs  The pole-zero pairs.
      */
     void add_pole_zero_pairs(const std::pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
-    (PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) and (N & 1) != 0);
+    (PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) and (N & 1) != 0);
 
     PassTypeData<PASS_TYPE, N, DT> _pass_type_data;
     FrequencyConfig _frequency_config;
@@ -262,7 +262,7 @@ IIRFilter<N, T, PASS_TYPE, DT>::IIRFilter(uint32_t crossfade_samples) {
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRFilter<N, T, PASS_TYPE, DT>::calculate_cascades(DT normalized_cutoff_frequency) requires (
-PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
+PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass) {
     if (normalized_cutoff_frequency == _frequency_config.w1) {
         return;
     }
@@ -296,7 +296,7 @@ PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRFilter<N, T, PASS_TYPE, DT>::calculate_cascades(DT cutlow_freq, DT cuthigh_freq) requires (
-PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
+PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) {
     if (cuthigh_freq == _frequency_config.w2 && cutlow_freq == _frequency_config.w1) {
         return;
     }
@@ -309,8 +309,8 @@ PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP
     _cascade_filter.reset();
     _cascade_filter.init_coefficients();
 
-    constexpr DT MIN_FREQ = 1e-8;
-    constexpr DT MAX_FREQ = 2 * M_PI - MIN_FREQ;
+    constexpr DT MIN_FREQ = DT{1e-8};
+    constexpr DT MAX_FREQ = DT{2} * std::numbers::pi_v<DT> - MIN_FREQ;
 
     if (cutlow_freq < MIN_FREQ) {
         cutlow_freq = MIN_FREQ;
@@ -358,10 +358,10 @@ void IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_conjugates_pair(const PoleZer
 
     // (z - z0)(z - z0*)=z^2 - z(z0+z0*) + |z0|^2 = z^2 * (1 - 2*Re(z0) * z^-1 + |z0|^2 * z^-2)
     BiquadCoefficients biquad_coefficients = {
-            .b0 = 1.0,
-            .b1 = -2.0 * zero_z.real(),
+            .b0 = DT{1},
+            .b1 = -DT{2} * zero_z.real(),
             .b2 = zero_z.real() * zero_z.real() + zero_z.imag() * zero_z.imag(),
-            .a1 = -2.0 * pole_z.real(),
+            .a1 = -DT{2} * pole_z.real(),
             .a2 = pole_z.real() * pole_z.real() + pole_z.imag() * pole_z.imag()
     };
 
@@ -375,11 +375,11 @@ void IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_single_pair(const PoleZeroPai
 
     // (z - z0) = z * (1 - z^-1 * z0 + 0)
     BiquadCoefficients biquad_coefficients = {
-            .b0 = 1.0,
+            .b0 = DT{1},
             .b1 = -zero_z.real(),
-            .b2 = 0.0,
+            .b2 = DT{0},
             .a1 = -pole_z.real(),
-            .a2 = 0.0
+            .a2 = DT{0}
     };
 
     push_biquad_coefficients(biquad_coefficients);
@@ -389,14 +389,14 @@ template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRFilter<N, T, PASS_TYPE, DT>::push_biquad_coefficients(BiquadCoefficients<DT> &biquad_coefficients) {
     _cascade_filter.push_biquad_coefficients(biquad_coefficients);
     const DT biquad_gain = _pass_type_data.calculate_gain(biquad_coefficients);
-    _cascade_filter.update_biquad_gain(1.0 / biquad_gain);
+    _cascade_filter.update_biquad_gain(DT{1} / biquad_gain);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void
 IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_pairs(
         const std::pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
-(PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) and (N & 1) != 0) {
+(PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) and (N & 1) != 0) {
     // (z - z1)(z - z2)=z^2 - z(z1+z2) + z1z2 = z^2 * (1 - (z1+z2)z^-1 + (z1*z2)*z^-2)
     const Complex<DT> &p1 = pole_zero_pairs.first.pole;
     const Complex<DT> &p2 = pole_zero_pairs.second.pole;
@@ -404,13 +404,13 @@ IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_pairs(
     const Complex<DT> &z2 = pole_zero_pairs.second.zero;
 
     BiquadCoefficients biquad_coefficients = {
-            .b0 = 1.0,
+            .b0 = DT{1},
             .b1 = -(pole_zero_pairs.first.zero.real() + pole_zero_pairs.second.zero.real()),
-            .b2 = z1.imag() == 0.0
+            .b2 = z1.imag() == DT{0}
                   ? z1.real() * z2.real()
                   : std::abs(z1),
             .a1 = -(pole_zero_pairs.first.pole.real() + pole_zero_pairs.second.pole.real()),
-            .a2 = p1.imag() == 0.0
+            .a2 = p1.imag() == DT{0}
                   ? p1.real() * p2.real()
                   : std::norm(p1)
     };
