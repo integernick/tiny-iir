@@ -22,7 +22,7 @@ namespace tiny_iir {
  * @tparam N   Analog prototype filter order.
  * @tparam T   Data type.
  */
-template<uint32_t N, typename T>
+template<uint32_t N, typename T, typename DESIGN_T>
 class CascadeFilter {
 public:
     /**
@@ -60,15 +60,15 @@ public:
      * @param biquad_coefficients  The biquad coefficients.
      * @return  True if pushing the coefficients was successful, false otherwise.
      */
-    bool push_biquad_coefficients(BiquadCoefficients &biquad_coefficients);
+    bool push_biquad_coefficients(BiquadCoefficients<DESIGN_T> &biquad_coefficients);
 
     /**
-     * @brief   Get the biquad coefficients (double representation).
+     * @brief   Get the biquad coefficients (DESIGN_T representation).
      *
      * @param biquad_idx  The index of the biquad.
      * @return  The biquad coefficients.
      */
-    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const;
+    [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const;
 
     /**
      * @brief   Update total filter gain with a new biquad gain.
@@ -76,7 +76,7 @@ public:
      * @note    This method is used by the external IIRFilter class that calculates gain depending on the pass type.
      * @param biquad_gain_inv  The new biquad gain inverse.
      */
-    void update_biquad_gain(double biquad_gain_inv);
+    void update_biquad_gain(DESIGN_T biquad_gain_inv);
 
     /**
      * @brief   Reset the filter state.
@@ -100,7 +100,7 @@ public:
      *
      * @param gain  The filter gain.
      */
-    void set_gain(double gain);
+    void set_gain(DESIGN_T gain);
 
     /**
      * @brief   Set the number of samples to smooth the transition between old and new coefficients.
@@ -184,14 +184,14 @@ public:
     static constexpr uint32_t NUMBER_OF_BIQUAD_BLOCKS = (N + 1) / 2;
     static constexpr uint32_t NUMBER_OF_COEFFICIENTS
             = NUMBER_OF_BIQUAD_BLOCKS * coeffs_per_stage<T>::value;
-    static constexpr uint32_t DELAY_LINE_SIZE = NUMBER_OF_BIQUAD_BLOCKS * BiquadCascade<T>::BLOCK_DELAY_LINE_SIZE;
+    static constexpr uint32_t DELAY_LINE_SIZE = NUMBER_OF_BIQUAD_BLOCKS * BiquadCascade<T, DESIGN_T>::BLOCK_DELAY_LINE_SIZE;
     static constexpr uint32_t PROCESS_CHUNK_SIZE = TINY_IIR_CHUNK_SIZE;
 
 private:
-    BiquadCascade<T> _biquad_cascade;
+    BiquadCascade<T, DESIGN_T> _biquad_cascade;
 
-    T _gain{BiquadCascade<T>::UNITY};
-    T _gain_crossfade{BiquadCascade<T>::UNITY};
+    T _gain{BiquadCascade<T, DESIGN_T>::UNITY};
+    T _gain_crossfade{BiquadCascade<T, DESIGN_T>::UNITY};
     T _gain_delta{};
 
     T _coefficients[NUMBER_OF_COEFFICIENTS]{};
@@ -207,29 +207,29 @@ private:
     bool _is_set_once = false;
 };
 
-template<uint32_t N, typename T>
-CascadeFilter<N, T>::CascadeFilter() {
+template<uint32_t N, typename T, typename DESIGN_T>
+CascadeFilter<N, T, DESIGN_T>::CascadeFilter() {
     // Initialize as passthrough filter
     for (uint32_t i = 0; i < NUMBER_OF_BIQUAD_BLOCKS; ++i) {
         _coefficients[i * coeffs_per_stage<T>::value] = 1.0;
     }
 }
 
-template<uint32_t N, typename T>
-const T *CascadeFilter<N, T>::get_coefficients() const {
+template<uint32_t N, typename T, typename DESIGN_T>
+const T *CascadeFilter<N, T, DESIGN_T>::get_coefficients() const {
     return _coefficients;
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::init_coefficients() {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::init_coefficients() {
     _biquad_cascade.set_coefficients(_coefficients);
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::init() {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::init() {
     _biquad_cascade.set_coefficients(_coefficients);
 
-    if constexpr (std::is_same_v<T, q31_t> || std::is_same_v<T, q15_t>) {
+    if constexpr (std::is_same_v<T, q31_t> or std::is_same_v<T, q15_t>) {
         _biquad_cascade.init(NUMBER_OF_BIQUAD_BLOCKS, _state);
     } else {
         if (not _is_set_once) {
@@ -238,14 +238,14 @@ void CascadeFilter<N, T>::init() {
     }
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::reset() {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::reset() {
     // Only reset internal counters/state of the biquad cascade; do not touch coefficients
     _biquad_cascade.reset();
 }
 
-template<uint32_t N, typename T>
-bool CascadeFilter<N, T>::push_biquad_coefficients(BiquadCoefficients &biquad_coefficients) {
+template<uint32_t N, typename T, typename DESIGN_T>
+bool CascadeFilter<N, T, DESIGN_T>::push_biquad_coefficients(BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
     if (_biquad_cascade.get_num_biquad_blocks_set() >= NUMBER_OF_BIQUAD_BLOCKS) {
         return false;
     }
@@ -271,13 +271,13 @@ bool CascadeFilter<N, T>::push_biquad_coefficients(BiquadCoefficients &biquad_co
     return true;
 }
 
-template<uint32_t N, typename T>
-BiquadCoefficients CascadeFilter<N, T>::get_biquad_coefficients(uint32_t biquad_idx) const {
+template<uint32_t N, typename T, typename DESIGN_T>
+BiquadCoefficients<DESIGN_T> CascadeFilter<N, T, DESIGN_T>::get_biquad_coefficients(uint32_t biquad_idx) const {
     return _biquad_cascade.get_biquad_coefficients(biquad_idx);
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::update_biquad_gain(double biquad_gain_inv) {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::update_biquad_gain(DESIGN_T biquad_gain_inv) {
     _biquad_cascade.update_gain(biquad_gain_inv, _gain);
 
     if (_crossfade_samples > 0) {
@@ -288,41 +288,41 @@ void CascadeFilter<N, T>::update_biquad_gain(double biquad_gain_inv) {
     }
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::reset_state() {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::reset_state() {
     memset(_state, 0, sizeof(_state));
     _is_set_once = false;
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::reset_blocks() {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::reset_blocks() {
     _biquad_cascade.reset();
 }
 
-template<uint32_t N, typename T>
-T CascadeFilter<N, T>::get_gain() const {
+template<uint32_t N, typename T, typename DESIGN_T>
+T CascadeFilter<N, T, DESIGN_T>::get_gain() const {
     return _gain;
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::set_gain(double gain) {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::set_gain(DESIGN_T gain) {
     to_native(&gain, &_gain, 1);
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::set_crossfade_samples(uint32_t crossfade_samples) {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::set_crossfade_samples(uint32_t crossfade_samples) {
     _crossfade_samples = crossfade_samples;
 
     if (_crossfade_samples > 0) {
-        double inv = 1.0 / static_cast<double>(_crossfade_samples);
+        DESIGN_T inv = DESIGN_T{1} / static_cast<DESIGN_T>(_crossfade_samples);
         to_native(&inv, &_crossfade_samples_inverse, 1);
     } else {
         _crossfade_samples_inverse = {};
     }
 }
 
-template<uint32_t N, typename T>
-T CascadeFilter<N, T>::process(T x) {
+template<uint32_t N, typename T, typename DESIGN_T>
+T CascadeFilter<N, T, DESIGN_T>::process(T x) {
     scale(&x, _gain_crossfade, &x, 1);
     T output = 0;
     _biquad_cascade.process_cascade(&x, &output, 1);
@@ -330,8 +330,8 @@ T CascadeFilter<N, T>::process(T x) {
     return output;
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::process(const T *in, T *out, uint32_t num_samples) {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::process(const T *in, T *out, uint32_t num_samples) {
     if (num_samples == 0) {
         return;
     }
@@ -342,8 +342,8 @@ void CascadeFilter<N, T>::process(const T *in, T *out, uint32_t num_samples) {
     _biquad_cascade.process_cascade(input_buffer, out, num_samples);
 }
 
-template<uint32_t N, typename T>
-T CascadeFilter<N, T>::process(const T *x, uint32_t num_samples) {
+template<uint32_t N, typename T, typename DESIGN_T>
+T CascadeFilter<N, T, DESIGN_T>::process(const T *x, uint32_t num_samples) {
     if (num_samples == 0) {
         return 0;
     }
@@ -354,9 +354,9 @@ T CascadeFilter<N, T>::process(const T *x, uint32_t num_samples) {
     return output_buffer[num_samples - 1];
 }
 
-template<uint32_t N, typename T>
+template<uint32_t N, typename T, typename DESIGN_T>
 template<typename U, typename>
-U CascadeFilter<N, T>::process(U x) {
+U CascadeFilter<N, T, DESIGN_T>::process(U x) {
     T x_native;
     to_native(&x, &x_native, 1);
 
@@ -366,9 +366,9 @@ U CascadeFilter<N, T>::process(U x) {
     return out_derived;
 }
 
-template<uint32_t N, typename T>
+template<uint32_t N, typename T, typename DESIGN_T>
 template<typename U, typename>
-void CascadeFilter<N, T>::process(const U *in, U *out, uint32_t num_samples) {
+void CascadeFilter<N, T, DESIGN_T>::process(const U *in, U *out, uint32_t num_samples) {
     if (num_samples == 0) {
         return;
     }
@@ -384,9 +384,9 @@ void CascadeFilter<N, T>::process(const U *in, U *out, uint32_t num_samples) {
     }
 }
 
-template<uint32_t N, typename T>
+template<uint32_t N, typename T, typename DESIGN_T>
 template<typename U, typename>
-U CascadeFilter<N, T>::process(const U *in, uint32_t num_samples) {
+U CascadeFilter<N, T, DESIGN_T>::process(const U *in, uint32_t num_samples) {
     if (num_samples == 0) {
         return 0;
     }
@@ -405,8 +405,8 @@ U CascadeFilter<N, T>::process(const U *in, uint32_t num_samples) {
     return last;
 }
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::update_coefficients_crossfade() {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::update_coefficients_crossfade() {
     if (_crossfade_samples == 0) {
         _gain_crossfade = _gain;
         return;
@@ -437,8 +437,8 @@ void CascadeFilter<N, T>::update_coefficients_crossfade() {
 
 #if TINY_IIR_CASCADE_FILTER_DEBUG > 0
 
-template<uint32_t N, typename T>
-void CascadeFilter<N, T>::print_coefficients() const {
+template<uint32_t N, typename T, typename DESIGN_T>
+void CascadeFilter<N, T, DESIGN_T>::print_coefficients() const {
     double gain_double;
     to_double(&_gain, &gain_double, 1);
     char debug_buf[128];

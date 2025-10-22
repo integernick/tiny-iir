@@ -4,19 +4,22 @@
 
 namespace tiny_iir {
 
-template<uint32_t N = 2,
-        typename T = double,
-        FilterPassType PASS_TYPE = FilterPassType::LOW_PASS>
+template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS,
+        typename DESIGN_T = double>
 class IIRButter final : public IIRFilter<N, T, PASS_TYPE> {
+    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+                  "DESIGN_T must be float or double");
+    using DT = DESIGN_T;
+
 public:
-    using IIRFilterBase = IIRFilter<N, T, PASS_TYPE>;
+    using IIRFilterBase = IIRFilter<N, T, PASS_TYPE, DT>;
 
     /**
      * @brief   Constructor (low-pass and high-pass).
      *
      * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
      */
-    explicit IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples = 0) requires (
+    explicit IIRButter(DT normalized_cutoff_frequency, uint32_t crossfade_samples = 0) requires (
     PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
 
     /**
@@ -24,7 +27,7 @@ public:
      *
      * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
      */
-    IIRButter(double normalized_lowcut_freq, double normalized_highcut_freq, uint32_t crossfade_samples = 0) requires (
+    IIRButter(DT normalized_lowcut_freq, DT normalized_highcut_freq, uint32_t crossfade_samples = 0) requires (
     PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
 
     /**
@@ -32,7 +35,7 @@ public:
      *
      * @param normalized_cutoff_frequency  Normalized cutoff frequency.
      */
-    void configure(double normalized_cutoff_frequency) requires (
+    void configure(DT normalized_cutoff_frequency) requires (
     PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
         init_analog();
         IIRFilterBase::calculate_cascades(normalized_cutoff_frequency);
@@ -44,7 +47,7 @@ public:
      * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
      * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
      */
-    void configure(double normalized_lowcut_freq, double normalized_highcut_freq) requires (
+    void configure(DT normalized_lowcut_freq, DT normalized_highcut_freq) requires (
     PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
         init_analog();
         IIRFilterBase::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
@@ -56,7 +59,7 @@ private:
      *
      * @return  The analog gain.
      */
-    [[nodiscard]] double get_analog_gain() const final;
+    [[nodiscard]] DT get_analog_gain() const final;
 
     /**
      * @brief   Initialize analog filter poles and zeros.
@@ -65,42 +68,42 @@ private:
 };
 
 
-template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples) requires (
+template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
+IIRButter<N, T, PASS_TYPE, DT>::IIRButter(DT normalized_cutoff_frequency, uint32_t crossfade_samples) requires (
 PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
         : IIRFilterBase(crossfade_samples) {
     configure(normalized_cutoff_frequency);
 }
 
-template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_lowcut_freq, double normalized_highcut_freq,
-                                      uint32_t crossfade_samples) requires (
+template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
+IIRButter<N, T, PASS_TYPE, DT>::IIRButter(DT normalized_lowcut_freq, DT normalized_highcut_freq,
+                                          uint32_t crossfade_samples) requires (
 PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP)
         : IIRFilterBase(crossfade_samples) {
     configure(normalized_lowcut_freq, normalized_highcut_freq);
 }
 
-template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-double IIRButter<N, T, PASS_TYPE>::get_analog_gain() const {
-    return 1.0;
+template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
+DT IIRButter<N, T, PASS_TYPE, DT>::get_analog_gain() const {
+    return DT{1};
 }
 
-template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-void IIRButter<N, T, PASS_TYPE>::init_analog() {
+template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
+void IIRButter<N, T, PASS_TYPE, DT>::init_analog() {
     if constexpr (N & 1) {
         IIRFilterBase::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {
-                -1.0,
-                INFINITY_VALUE
+                -DT{1},
+                std::numeric_limits<DT>::infinity()
         };
     }
 
     for (uint32_t i = 0; i < N / 2; ++i) {
-        const double phi = static_cast<double>(2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
-        const double pole_s_real = -std::sin(phi);
-        const double pole_s_imag = std::cos(phi);
+        const DT phi = static_cast<DT>(2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
+        const DT pole_s_real = -std::sin(phi);
+        const DT pole_s_imag = std::cos(phi);
         IIRFilterBase::_analog_pole_zero_pairs[i] = {
-                {pole_s_real,    pole_s_imag},
-                {INFINITY_VALUE, 0}
+                {pole_s_real,                         pole_s_imag},
+                {std::numeric_limits<DT>::infinity(), DT{0}}
         };
     }
 }
