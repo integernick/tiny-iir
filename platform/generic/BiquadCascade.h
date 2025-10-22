@@ -1,10 +1,8 @@
 #pragma once
 
-#include <common/common_utils.h>
-
 #include "BiquadBlock.h"
 
-#include <array>
+#include <common/common_utils.h>
 
 namespace tiny_iir {
 
@@ -19,13 +17,13 @@ struct coeffs_per_stage {
     static constexpr uint32_t value = 5;
 };
 
-template<typename>
+template<typename T, typename DESIGN_T>
 struct BiquadCascade;
 
 /**
  * @brief   Biquad cascade for float native type.
  */
-template<typename T = double>
+template<typename T, typename DESIGN_T>
 class BiquadCascade {
 public:
     /**
@@ -42,7 +40,7 @@ public:
      *
      * @param coefficients  The coefficients array.
      */
-    void set_coefficients(double *coefficients) {
+    void set_coefficients(DESIGN_T *coefficients) {
         _coefficients = coefficients;
     }
 
@@ -80,7 +78,7 @@ public:
      * @param coefficients  The pointer to the biquad coefficients block.
      * @param biquad_coefficients  The biquad coefficients.
      */
-    void push_biquad_coefficients(T *coefficients, const BiquadCoefficients &biquad_coefficients) {
+    void push_biquad_coefficients(T *coefficients, const BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
         coefficients[0] = biquad_coefficients.b0;
         coefficients[1] = biquad_coefficients.b1;
         coefficients[2] = biquad_coefficients.b2;
@@ -96,10 +94,10 @@ public:
      * @param biquad_idx  The index of the biquad.
      * @return  The biquad coefficients.
      */
-    [[nodiscard]] BiquadCoefficients get_biquad_coefficients(uint32_t biquad_idx) const {
-        BiquadCoefficients coeffs;
-        to_double(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
-                  coeffs_per_stage<float>::value);
+    [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const {
+        BiquadCoefficients<DESIGN_T> coeffs;
+        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
+                            coeffs_per_stage<float>::value);
         coeffs.a1 = -coeffs.a1;
         coeffs.a2 = -coeffs.a2;
 
@@ -112,17 +110,17 @@ public:
      * @param biquad_gain_inv  The biquad gain inverse.
      * @param gain  The cascade gain.
      */
-    void update_gain(double biquad_gain_inv, double &gain) {
-        gain *= biquad_gain_inv;
+    void update_gain(DESIGN_T biquad_gain_inv, T &gain) {
+        gain *= static_cast<T>(biquad_gain_inv);
     }
 
     static constexpr uint32_t BLOCK_DELAY_LINE_SIZE = BiquadBlockDF2TCascade<T>::BLOCK_DELAY_LINE_SIZE;
 
-    static constexpr double UNITY = 1.0;
+    static constexpr double UNITY = T{1};
 
 private:
     BiquadBlockDF2TCascade<T> _biquad_cascade_instance;
-    double *_coefficients = nullptr;
+    T *_coefficients = nullptr;
     uint32_t _num_biquad_blocks_set = 0;
 };
 

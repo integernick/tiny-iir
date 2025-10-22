@@ -12,10 +12,11 @@ static constexpr double TOL_DOUBLE = 2e-9;
 
 namespace {
 
-template<class FILTER>
-void test_biquad_coefficients(FILTER &filter, uint32_t biquad_idx, const BiquadCoefficients &coeffs_expected,
+template<class FILTER, typename DESIGN_T>
+void test_biquad_coefficients(FILTER &filter, uint32_t biquad_idx, const BiquadCoefficients<DESIGN_T> &coeffs_expected,
                               double tolerance) {
-    BiquadCoefficients coeffs_actual = filter.get_biquad_coefficients(biquad_idx);
+    BiquadCoefficients<DESIGN_T> coeffs_actual = filter.get_biquad_coefficients(biquad_idx);
+
     EXPECT_NEAR(coeffs_expected.b0, coeffs_actual.b0, tolerance) << "Biquad coefficients mismatch";
     EXPECT_NEAR(coeffs_expected.b1, coeffs_actual.b1, tolerance) << "Biquad coefficients mismatch";
     EXPECT_NEAR(coeffs_expected.b2, coeffs_actual.b2, tolerance) << "Biquad coefficients mismatch";

@@ -42,14 +42,14 @@ TEST(EllipticTest, EllipticFunctions) {
     const double R = K_prime / K;
 
     constexpr double ELLIPTIC_FUNCTION_ARG = 0.3;
-    const Complex sn_val = sn(ELLIPTIC_FUNCTION_ARG, ELLIPTIC_MODULUS);
-    const Complex cd_val = cd(ELLIPTIC_FUNCTION_ARG, ELLIPTIC_MODULUS);
+    const Complex sn_val = sn<double>(ELLIPTIC_FUNCTION_ARG, ELLIPTIC_MODULUS);
+    const Complex cd_val = cd<double>(ELLIPTIC_FUNCTION_ARG, ELLIPTIC_MODULUS);
 
     ASSERT_NEAR(sn_val.real(), 0.479967620395883, TOL_EF);
     ASSERT_NEAR(cd_val.real(), 0.903694981323325, TOL_EF);
 
     constexpr double ARC_ARG = 0.9;
-    const Complex asn_val = asn(ARC_ARG, ELLIPTIC_MODULUS, R);
+    const Complex asn_val = asn<double>(ARC_ARG, ELLIPTIC_MODULUS, R);
     const Complex acd_val = 1.0 - asn_val;
 
     ASSERT_NEAR(asn_val.real(), 0.694315905982350, TOL_EF);

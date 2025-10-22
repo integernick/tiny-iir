@@ -4,10 +4,8 @@
 
 namespace tiny_iir {
 
-using Complex = std::complex<double>;
-
-static constexpr double INFINITY_VALUE
-        = std::numeric_limits<double>::infinity();
+template<typename DESIGN_T>
+using Complex = std::complex<DESIGN_T>;
 
 enum class FilterPassType : int {
     LOW_PASS,
@@ -16,17 +14,19 @@ enum class FilterPassType : int {
     BAND_STOP,
 };
 
+template<typename DESIGN_T>
 struct PoleZeroPair {
-    std::complex<double> pole;
-    std::complex<double> zero;
+    std::complex<DESIGN_T> pole;
+    std::complex<DESIGN_T> zero;
 };
 
+template<typename DESIGN_T>
 struct BiquadCoefficients {
-    double b0 = 0;
-    double b1 = 0;
-    double b2 = 0;
-    double a1 = 0;
-    double a2 = 0;
+    DESIGN_T b0 = 0;
+    DESIGN_T b1 = 0;
+    DESIGN_T b2 = 0;
+    DESIGN_T a1 = 0;
+    DESIGN_T a2 = 0;
 };
 
 /**
@@ -38,7 +38,7 @@ struct BiquadCoefficients {
  * @return  The constrained value.
  */
 template <typename T>
-T constrain(T value, T min, T max) {
+constexpr T constrain(T value, T min, T max) {
     return value < min ? min
             : value > max ? max
             : value;
