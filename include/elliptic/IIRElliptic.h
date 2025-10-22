@@ -13,9 +13,9 @@ namespace tiny_iir {
  * @tparam PASS_TYPE   Pass type (low, high).
  * @tparam DESIGN_T    The filter design type.
  */
-template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS,
+template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
-class IIRElliptic : public IIRFilter<N, T, PASS_TYPE> {
+class IIRElliptic : public IIRFilter<N, T, PASS_TYPE, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
                   "DESIGN_T must be float or double");
     using DT = DESIGN_T;
@@ -26,42 +26,49 @@ public:
     /**
      * @brief   Constructor (low-pass and high-pass).
      *
-     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     * @param normalized_cutoff_frequency   Normalized cutoff frequency.
+     * @param pass_ripple_db                Passband ripple in dB.
+     * @param stop_attenuation_db           Stopband attenuation in dB.
+     * @param crossfade_samples             The number of samples to smooth the transition between old and new coefficients.
      */
-    IIRElliptic(DT normalized_cutoff_frequency, DT pass_ripple_db, DT stop_ripple_db,
+    IIRElliptic(DT normalized_cutoff_frequency, DT pass_ripple_db, DT stop_attenuation_db,
                 uint32_t crossfade_samples = 0) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass);
 
     /**
      * @brief   Constructor (band-pass and band-stop).
      *
-     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     * @param normalized_lowcut_freq    Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq   Normalized high-pass cutoff frequency.
+     * @param pass_ripple_db            Passband ripple in dB.
+     * @param stop_attenuation_db       Stopband attenuation in dB.
+     * @param crossfade_samples         The number of samples to smooth the transition between old and new coefficients.
      */
     IIRElliptic(DT normalized_lowcut_freq, DT normalized_highcut_freq,
-                DT pass_ripple_db, DT stop_ripple_db, uint32_t crossfade_samples = 0) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
+                DT pass_ripple_db, DT stop_attenuation_db, uint32_t crossfade_samples = 0) requires (
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
     /**
      * @brief   Configure the filter (low-pass and high-pass).
      *
-     * @param normalized_cutoff_frequency  Normalized cutoff frequency.
-     * @param pass_ripple_db  Passband ripple in dB.
-     * @param stop_ripple_db  Stopband ripple in dB.
+     * @param normalized_cutoff_frequency   Normalized cutoff frequency.
+     * @param pass_ripple_db                Passband ripple in dB.
+     * @param stop_attenuation_db           Stopband attenuation in dB.
      */
-    void configure(DT normalized_cutoff_frequency, DT pass_ripple_db, DT stop_ripple_db) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
+    void configure(DT normalized_cutoff_frequency, DT pass_ripple_db, DT stop_attenuation_db) requires (
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass);
 
     /**
      * @brief   Configure the filter (band-pass and band-stop).
      *
-     * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
-     * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
-     * @param pass_ripple_db  Passband ripple in dB.
-     * @param stop_ripple_db  Stopband ripple in dB.
+     * @param normalized_lowcut_freq    Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq   Normalized high-pass cutoff frequency.
+     * @param pass_ripple_db            Passband ripple in dB.
+     * @param stop_attenuation_db       Stopband attenuation in dB.
      */
     void configure(DT normalized_lowcut_freq, DT normalized_highcut_freq,
-                   DT pass_ripple_db, DT stop_ripple_db) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
+                   DT pass_ripple_db, DT stop_attenuation_db) requires (
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
 private:
     static constexpr uint32_t L = N / 2;
@@ -80,57 +87,57 @@ private:
     void init_analog() final;
 
     DT _pass_ripple_db = 0;
-    DT _stop_ripple_db = 0;
+    DT _stop_attenuation_db = 0;
 };
 
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 IIRElliptic<N, T, PASS_TYPE, DT>::IIRElliptic(DT normalized_cutoff_frequency, DT pass_ripple_db,
-                                              DT stop_ripple_db, uint32_t crossfade_samples) requires (
-PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
-        : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
-    configure(normalized_cutoff_frequency, pass_ripple_db, stop_ripple_db);
+                                              DT stop_attenuation_db, uint32_t crossfade_samples) requires (
+PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass)
+        : IIRFilter<N, T, PASS_TYPE, DT>(crossfade_samples) {
+    configure(normalized_cutoff_frequency, pass_ripple_db, stop_attenuation_db);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 IIRElliptic<N, T, PASS_TYPE, DT>::IIRElliptic(DT normalized_lowcut_freq, DT normalized_highcut_freq,
-                                              DT pass_ripple_db, DT stop_ripple_db,
+                                              DT pass_ripple_db, DT stop_attenuation_db,
                                               uint32_t crossfade_samples) requires (
-PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP)
-        : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
-    configure(normalized_lowcut_freq, normalized_highcut_freq, pass_ripple_db, stop_ripple_db);
+PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop)
+        : IIRFilter<N, T, PASS_TYPE, DT>(crossfade_samples) {
+    configure(normalized_lowcut_freq, normalized_highcut_freq, pass_ripple_db, stop_attenuation_db);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRElliptic<N, T, PASS_TYPE, DT>::configure(DT normalized_cutoff_frequency,
-                                                 DT pass_ripple_db, DT stop_ripple_db) requires (
-PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
+                                                 DT pass_ripple_db, DT stop_attenuation_db) requires (
+PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass) {
     pass_ripple_db = std::abs(pass_ripple_db);
-    stop_ripple_db = std::abs(stop_ripple_db);
+    stop_attenuation_db = std::abs(stop_attenuation_db);
 
-    if (pass_ripple_db != _pass_ripple_db || stop_ripple_db != _stop_ripple_db) {
+    if (pass_ripple_db != _pass_ripple_db || stop_attenuation_db != _stop_attenuation_db) {
         _pass_ripple_db = pass_ripple_db;
-        _stop_ripple_db = stop_ripple_db;
+        _stop_attenuation_db = stop_attenuation_db;
         init_analog();
     }
 
-    IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_cutoff_frequency);
+    IIRFilter<N, T, PASS_TYPE, DT>::calculate_cascades(normalized_cutoff_frequency);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRElliptic<N, T, PASS_TYPE, DT>::configure(DT normalized_lowcut_freq, DT normalized_highcut_freq,
-                                                 DT pass_ripple_db, DT stop_ripple_db) requires (
-PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
+                                                 DT pass_ripple_db, DT stop_attenuation_db) requires (
+PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) {
     pass_ripple_db = std::abs(pass_ripple_db);
-    stop_ripple_db = std::abs(stop_ripple_db);
+    stop_attenuation_db = std::abs(stop_attenuation_db);
 
-    if (pass_ripple_db != _pass_ripple_db || stop_ripple_db != _stop_ripple_db) {
+    if (pass_ripple_db != _pass_ripple_db || stop_attenuation_db != _stop_attenuation_db) {
         _pass_ripple_db = pass_ripple_db;
-        _stop_ripple_db = stop_ripple_db;
+        _stop_attenuation_db = stop_attenuation_db;
         init_analog();
     }
 
-    IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
+    IIRFilter<N, T, PASS_TYPE, DT>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
@@ -145,7 +152,7 @@ DT IIRElliptic<N, T, PASS_TYPE, DT>::get_analog_gain() const {
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRElliptic<N, T, PASS_TYPE, DT>::init_analog() {
     const DT eps_p = std::sqrt(std::exp(_pass_ripple_db * DT{0.1} * std::numbers::ln10_v<DT>) - DT{1});
-    const DT eps_s = std::sqrt(std::exp(_stop_ripple_db * DT{0.1} * std::numbers::ln10_v<DT>) - DT{1});
+    const DT eps_s = std::sqrt(std::exp(_stop_attenuation_db * DT{0.1} * std::numbers::ln10_v<DT>) - DT{1});
 
     const DT k1 = eps_p / eps_s; // The ratio (eps_p / eps_s) << 1
 
@@ -165,7 +172,7 @@ void IIRElliptic<N, T, PASS_TYPE, DT>::init_analog() {
     if constexpr (N & 1) {
         const Complex pole = IMAG_UNIT * sn<DT>(IMAG_UNIT * v0, k);
         const Complex zero = Complex{std::numeric_limits<DT>::infinity(), DT{0}};
-        IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
+        IIRFilter<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
     }
 
     for (uint32_t i = 0; i < N / 2; ++i) {

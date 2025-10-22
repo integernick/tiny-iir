@@ -8,10 +8,15 @@ template<typename DESIGN_T>
 using Complex = std::complex<DESIGN_T>;
 
 enum class FilterPassType : int {
-    LOW_PASS,
-    HIGH_PASS,
-    BAND_PASS,
-    BAND_STOP,
+    LowPass,
+    HighPass,
+    BandPass,
+    BandStop,
+
+    LOW_PASS = LowPass,
+    HIGH_PASS = HighPass,
+    BAND_PASS = BandPass,
+    BAND_STOP = BandStop
 };
 
 template<typename DESIGN_T>

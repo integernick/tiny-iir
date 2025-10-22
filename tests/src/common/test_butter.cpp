@@ -36,7 +36,7 @@ TEST(ButterTest, ButterLPFDoubleImpulseResponse) {
 }
 
 TEST(ButterTest, ButterBPFImpulseResponse) {
-    IIRButter<4, double, FilterPassType::BAND_PASS> butter_bpf(0.7, 0.8);
+    IIRButter<4, double, FilterPassType::BandPass> butter_bpf(0.7, 0.8);
 
     const std::vector<double> expected = {
             0.0004165992044066, -0.00214164053195773, 0.00387518458087297, -0.000533796684804137,
@@ -50,7 +50,7 @@ TEST(ButterTest, ButterBPFImpulseResponse) {
 }
 
 TEST(ButterTest, ButterBSFImpulseResponse) {
-    IIRButter<4, double, FilterPassType::BAND_STOP> butter_bsf(0.7, 0.8);
+    IIRButter<4, double, FilterPassType::BandStop> butter_bsf(0.7, 0.8);
 
     const std::vector<double> expected = {
             0.662015837202617, 0.388337188268718, 0.105855702753534, -0.354102300634946,

@@ -4,9 +4,9 @@
 
 namespace tiny_iir {
 
-template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS,
+template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
-class IIRButter final : public IIRFilter<N, T, PASS_TYPE> {
+class IIRButter final : public IIRFilter<N, T, PASS_TYPE, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
                   "DESIGN_T must be float or double");
     using DT = DESIGN_T;
@@ -17,18 +17,21 @@ public:
     /**
      * @brief   Constructor (low-pass and high-pass).
      *
-     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     * @param normalized_cutoff_frequency   Normalized cutoff frequency.
+     * @param crossfade_samples             The number of samples to smooth the transition between old and new coefficients.
      */
     explicit IIRButter(DT normalized_cutoff_frequency, uint32_t crossfade_samples = 0) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass);
 
     /**
      * @brief   Constructor (band-pass and band-stop).
      *
-     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     * @param normalized_lowcut_freq    Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq   Normalized high-pass cutoff frequency.
+     * @param crossfade_samples         The number of samples to smooth the transition between old and new coefficients.
      */
     IIRButter(DT normalized_lowcut_freq, DT normalized_highcut_freq, uint32_t crossfade_samples = 0) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
     /**
      * @brief   Configure the filter (low-pass and high-pass).
@@ -36,7 +39,7 @@ public:
      * @param normalized_cutoff_frequency  Normalized cutoff frequency.
      */
     void configure(DT normalized_cutoff_frequency) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass) {
         init_analog();
         IIRFilterBase::calculate_cascades(normalized_cutoff_frequency);
     }
@@ -44,11 +47,11 @@ public:
     /**
      * @brief   Configure the filter (band-pass and band-stop).
      *
-     * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
-     * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
+     * @param normalized_lowcut_freq    Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq   Normalized high-pass cutoff frequency.
      */
     void configure(DT normalized_lowcut_freq, DT normalized_highcut_freq) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) {
         init_analog();
         IIRFilterBase::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
     }
@@ -70,7 +73,7 @@ private:
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 IIRButter<N, T, PASS_TYPE, DT>::IIRButter(DT normalized_cutoff_frequency, uint32_t crossfade_samples) requires (
-PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
+PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass)
         : IIRFilterBase(crossfade_samples) {
     configure(normalized_cutoff_frequency);
 }
@@ -78,7 +81,7 @@ PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 IIRButter<N, T, PASS_TYPE, DT>::IIRButter(DT normalized_lowcut_freq, DT normalized_highcut_freq,
                                           uint32_t crossfade_samples) requires (
-PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP)
+PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop)
         : IIRFilterBase(crossfade_samples) {
     configure(normalized_lowcut_freq, normalized_highcut_freq);
 }

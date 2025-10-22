@@ -29,10 +29,10 @@ static std::string sos_line(const BiquadCoefficients &c) {
 }
 
 static FilterPassType to_pass(const std::string &s) {
-    if (s == "lpf" || s == "low" || s == "lowpass") return FilterPassType::LOW_PASS;
-    if (s == "hpf" || s == "high" || s == "highpass") return FilterPassType::HIGH_PASS;
-    if (s == "bpf" || s == "band" || s == "bandpass") return FilterPassType::BAND_PASS;
-    if (s == "brf" || s == "bsf" || s == "bandstop") return FilterPassType::BAND_STOP;
+    if (s == "lpf" || s == "low" || s == "lowpass") return FilterPassType::LowPass;
+    if (s == "hpf" || s == "high" || s == "highpass") return FilterPassType::HighPass;
+    if (s == "bpf" || s == "band" || s == "bandpass") return FilterPassType::BandPass;
+    if (s == "brf" || s == "bsf" || s == "bandstop") return FilterPassType::BandStop;
     throw std::invalid_argument("unknown --pass value");
 }
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
         std::cerr << "lowcut 0-1\n";
         return 1;
     }
-    if ((pass == FilterPassType::BAND_PASS || pass == FilterPassType::BAND_STOP) &&
+    if ((pass == FilterPassType::BandPass || pass == FilterPassType::BandStop) &&
         (fc2 <= fc1 || fc2 >= 1)) {
         std::cerr << "highcut > lowcut and <1\n";
         return 1;
@@ -120,47 +120,47 @@ int main(int argc, char **argv) {
     /* Dispatch */
     
 #define BUTTER_LPF(N) { IIRButter<N,double> f(fc1); gain=f.get_gain(); collect<IIRButter<N,double>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define BUTTER_HPF(N) { IIRButter<N,double,FilterPassType::HIGH_PASS> f(fc1); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define BUTTER_BPF(N) { IIRButter<N,double,FilterPassType::BAND_PASS> f(fc1,fc2); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define BUTTER_BSF(N) { IIRButter<N,double,FilterPassType::BAND_STOP> f(fc1,fc2); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define BUTTER_HPF(N) { IIRButter<N,double,FilterPassType::HighPass> f(fc1); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HighPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define BUTTER_BPF(N) { IIRButter<N,double,FilterPassType::BandPass> f(fc1,fc2); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define BUTTER_BSF(N) { IIRButter<N,double,FilterPassType::BandStop> f(fc1,fc2); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandStop>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
 
 #define CHEBY1_LPF(N) { IIRCheby1<N,double> f(fc1,rp); gain=f.get_gain(); collect<IIRButter<N,double>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define CHEBY1_HPF(N) { IIRCheby1<N,double,FilterPassType::HIGH_PASS> f(fc1,rp); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define CHEBY1_BPF(N) { IIRCheby1<N,double,FilterPassType::BAND_PASS> f(fc1,fc2,rp); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define CHEBY1_BSF(N) { IIRCheby1<N,double,FilterPassType::BAND_STOP> f(fc1,fc2,rp); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define CHEBY1_HPF(N) { IIRCheby1<N,double,FilterPassType::HighPass> f(fc1,rp); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HighPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define CHEBY1_BPF(N) { IIRCheby1<N,double,FilterPassType::BandPass> f(fc1,fc2,rp); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define CHEBY1_BSF(N) { IIRCheby1<N,double,FilterPassType::BandStop> f(fc1,fc2,rp); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandStop>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
 
 #define CHEBY2_LPF(N) { IIRCheby2<N,double> f(fc1,rs); gain=f.get_gain(); collect<IIRButter<N,double>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define CHEBY2_HPF(N) { IIRCheby2<N,double,FilterPassType::HIGH_PASS> f(fc1,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define CHEBY2_BPF(N) { IIRCheby2<N,double,FilterPassType::BAND_PASS> f(fc1,fc2,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define CHEBY2_BSF(N) { IIRCheby2<N,double,FilterPassType::BAND_STOP> f(fc1,fc2,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define CHEBY2_HPF(N) { IIRCheby2<N,double,FilterPassType::HighPass> f(fc1,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HighPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define CHEBY2_BPF(N) { IIRCheby2<N,double,FilterPassType::BandPass> f(fc1,fc2,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define CHEBY2_BSF(N) { IIRCheby2<N,double,FilterPassType::BandStop> f(fc1,fc2,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandStop>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
 
 #define ELLIP_LPF(N)  { IIRElliptic<N,double> f(fc1,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define ELLIP_HPF(N)  { IIRElliptic<N,double,FilterPassType::HIGH_PASS> f(fc1,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HIGH_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define ELLIP_BPF(N)  { IIRElliptic<N,double,FilterPassType::BAND_PASS> f(fc1,fc2,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_PASS>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
-#define ELLIP_BSF(N)  { IIRElliptic<N,double,FilterPassType::BAND_STOP> f(fc1,fc2,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BAND_STOP>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define ELLIP_HPF(N)  { IIRElliptic<N,double,FilterPassType::HighPass> f(fc1,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::HighPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define ELLIP_BPF(N)  { IIRElliptic<N,double,FilterPassType::BandPass> f(fc1,fc2,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandPass>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
+#define ELLIP_BSF(N)  { IIRElliptic<N,double,FilterPassType::BandStop> f(fc1,fc2,rp,rs); gain=f.get_gain(); collect<IIRButter<N,double,FilterPassType::BandStop>::NUMBER_OF_BIQUAD_BLOCKS>(f,sos); }
 
     if (type == "butterworth" || type == "butter") {
-        if (pass == FilterPassType::LOW_PASS) ORDERS(order, BUTTER_LPF)
-        else if (pass == FilterPassType::HIGH_PASS) ORDERS(order, BUTTER_HPF)
-        else if (pass == FilterPassType::BAND_PASS) ORDERS(order, BUTTER_BPF)
+        if (pass == FilterPassType::LowPass) ORDERS(order, BUTTER_LPF)
+        else if (pass == FilterPassType::HighPass) ORDERS(order, BUTTER_HPF)
+        else if (pass == FilterPassType::BandPass) ORDERS(order, BUTTER_BPF)
         else
             ORDERS(order, BUTTER_BSF)
     } else if (type == "cheby1") {
-        if (pass == FilterPassType::LOW_PASS) ORDERS(order, CHEBY1_LPF)
-        else if (pass == FilterPassType::HIGH_PASS) ORDERS(order, CHEBY1_HPF)
-        else if (pass == FilterPassType::BAND_PASS) ORDERS(order, CHEBY1_BPF)
+        if (pass == FilterPassType::LowPass) ORDERS(order, CHEBY1_LPF)
+        else if (pass == FilterPassType::HighPass) ORDERS(order, CHEBY1_HPF)
+        else if (pass == FilterPassType::BandPass) ORDERS(order, CHEBY1_BPF)
         else
             ORDERS(order, CHEBY1_BSF)
     } else if (type == "cheby2") {
-        if (pass == FilterPassType::LOW_PASS) ORDERS(order, CHEBY2_LPF)
-        else if (pass == FilterPassType::HIGH_PASS) ORDERS(order, CHEBY2_HPF)
-        else if (pass == FilterPassType::BAND_PASS) ORDERS(order, CHEBY2_BPF)
+        if (pass == FilterPassType::LowPass) ORDERS(order, CHEBY2_LPF)
+        else if (pass == FilterPassType::HighPass) ORDERS(order, CHEBY2_HPF)
+        else if (pass == FilterPassType::BandPass) ORDERS(order, CHEBY2_BPF)
         else
             ORDERS(order, CHEBY2_BSF)
     } else if (type == "elliptic") {
-        if (pass == FilterPassType::LOW_PASS) ORDERS(order, ELLIP_LPF)
-        else if (pass == FilterPassType::HIGH_PASS) ORDERS(order, ELLIP_HPF)
-        else if (pass == FilterPassType::BAND_PASS) ORDERS(order, ELLIP_BPF)
+        if (pass == FilterPassType::LowPass) ORDERS(order, ELLIP_LPF)
+        else if (pass == FilterPassType::HighPass) ORDERS(order, ELLIP_HPF)
+        else if (pass == FilterPassType::BandPass) ORDERS(order, ELLIP_BPF)
         else
             ORDERS(order, ELLIP_BSF)
     } else {
@@ -186,16 +186,16 @@ int main(int argc, char **argv) {
 #undef ELLIP_BSF
 
     const std::string tshort = (type == "butterworth" ? "butter" : type);
-    const std::string pshort = (pass == FilterPassType::LOW_PASS ? "lpf" :
-                                pass == FilterPassType::HIGH_PASS ? "hpf" :
-                                pass == FilterPassType::BAND_PASS ? "bpf" : "bsf");
+    const std::string pshort = (pass == FilterPassType::LowPass ? "lpf" :
+                                pass == FilterPassType::HighPass ? "hpf" :
+                                pass == FilterPassType::BandPass ? "bpf" : "bsf");
     const std::string key = tshort + "_" + pshort;
 
     json out;
     json cfg;
 
     cfg["order"] = order;
-    if (pass == FilterPassType::LOW_PASS || pass == FilterPassType::HIGH_PASS)
+    if (pass == FilterPassType::LowPass || pass == FilterPassType::HighPass)
         cfg["freq_cutoff"] = fc1;
     else {
         cfg["freq_lowcut"] = fc1;

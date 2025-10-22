@@ -19,7 +19,7 @@ TEST(Cheby2Test, Cheby2LPFQ31Coeffs) {
 }
 
 TEST(Cheby2Test, Cheby2HPFQ31Coeffs) {
-    IIRCheby2<7, q31_t, FilterPassType::HIGH_PASS> cheby2_hpf(0.2, 30.0);
+    IIRCheby2<7, q31_t, FilterPassType::HighPass> cheby2_hpf(0.2, 30.0);
 
     constexpr double GAIN_EXPECTED = 0.414076474853479;
     std::vector<double> expected_coeffs = {
@@ -34,7 +34,7 @@ TEST(Cheby2Test, Cheby2HPFQ31Coeffs) {
 }
 
 TEST(Cheby2Test, Cheby2BPFQ31ImpulseResponse) {
-    IIRCheby2<7, q31_t, FilterPassType::BAND_PASS> cheby2_bpf(0.05, 0.35, 30.0);
+    IIRCheby2<7, q31_t, FilterPassType::BandPass> cheby2_bpf(0.05, 0.35, 30.0);
 
     const std::vector<double> expected = {
             0.0513292514145267, 0.0963269056660768, 0.122911666862606, 0.104800727679869,
@@ -48,7 +48,7 @@ TEST(Cheby2Test, Cheby2BPFQ31ImpulseResponse) {
 }
 
 TEST(Cheby2Test, Cheby2BSFQ31ImpulseResponse) {
-    IIRCheby2<7, q31_t, FilterPassType::BAND_STOP> cheby2_bsf(0.05, 0.35, 30.0);
+    IIRCheby2<7, q31_t, FilterPassType::BandStop> cheby2_bsf(0.05, 0.35, 30.0);
 
     const std::vector<double> expected = {
             0.268494049405138, -0.539362745210064, 0.381062283143844, 0.130409607636981,
@@ -75,7 +75,7 @@ TEST(Cheby2Test, Cheby2LPFQ15Coeffs) {
 }
 
 TEST(Cheby2Test, Cheby2HPFQ15Coeffs) {
-    IIRCheby2<7, q15_t, FilterPassType::HIGH_PASS> cheby2_hpf(0.2, 30.0);
+    IIRCheby2<7, q15_t, FilterPassType::HighPass> cheby2_hpf(0.2, 30.0);
 
     constexpr double GAIN_EXPECTED = 0.414076474853479;
     std::vector<double> expected_coeffs = {
@@ -90,7 +90,7 @@ TEST(Cheby2Test, Cheby2HPFQ15Coeffs) {
 }
 
 TEST(Cheby2Test, Cheby2BPFQ15ImpulseResponse) {
-    IIRCheby2<7, q15_t, FilterPassType::BAND_PASS> cheby2_bpf(0.05, 0.35, 30.0);
+    IIRCheby2<7, q15_t, FilterPassType::BandPass> cheby2_bpf(0.05, 0.35, 30.0);
 
     const std::vector<double> expected = {
             0.0513292514145267, 0.0963269056660768, 0.122911666862606, 0.104800727679869,
@@ -104,7 +104,7 @@ TEST(Cheby2Test, Cheby2BPFQ15ImpulseResponse) {
 }
 
 TEST(Cheby2Test, Cheby2BSFQ15ImpulseResponse) {
-    IIRCheby2<7, q15_t, FilterPassType::BAND_STOP> cheby2_bsf(0.05, 0.35, 30.0);
+    IIRCheby2<7, q15_t, FilterPassType::BandStop> cheby2_bsf(0.05, 0.35, 30.0);
 
     const std::vector<double> expected = {
             0.268494049405138, -0.539362745210064, 0.381062283143844, 0.130409607636981,

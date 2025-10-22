@@ -31,7 +31,7 @@ TEST(Cheby1Test, Cheby1LPFQ31ImpulseResponse) {
 }
 
 TEST(Cheby1Test, Cheby1BPFQ31Coeffs) {
-    IIRCheby1<4, q31_t, FilterPassType::BAND_PASS> cheby1_bpf(0.7, 0.8, 0.1);
+    IIRCheby1<4, q31_t, FilterPassType::BandPass> cheby1_bpf(0.7, 0.8, 0.1);
 
     constexpr double GAIN_EXPECTED = 0.000378930474568963;
     /** @note MATLAB sorts zeros so that positive ones come first */
@@ -47,7 +47,7 @@ TEST(Cheby1Test, Cheby1BPFQ31Coeffs) {
 }
 
 TEST(Cheby1Test, Cheby1BPFQ31ImpulseResponse) {
-    IIRCheby1<7, q31_t, FilterPassType::BAND_PASS> cheby1_bpf(0.4, 0.6, 0.1);
+    IIRCheby1<7, q31_t, FilterPassType::BandPass> cheby1_bpf(0.4, 0.6, 0.1);
 
     const std::vector<double> expected = {
             1.92703455044235e-05, 5.77648294330306e-20, -0.000237524848074349, -8.08921536809345e-19,
@@ -61,7 +61,7 @@ TEST(Cheby1Test, Cheby1BPFQ31ImpulseResponse) {
 }
 
 TEST(Cheby1Test, Cheby1BSFQ31ImpulseResponse) {
-    IIRCheby1<5, q31_t, FilterPassType::BAND_STOP> cheby1_bsf(0.35, 0.45, 0.05);
+    IIRCheby1<5, q31_t, FilterPassType::BandStop> cheby1_bsf(0.35, 0.45, 0.05);
 
     const std::vector<double> expected = {
             0.5962523346637, -0.191490997136767, 0.524010068943812, 0.332580223670483,
@@ -100,7 +100,7 @@ TEST(Cheby1Test, Cheby1LPFQ15ImpulseResponse) {
 }
 
 TEST(Cheby1Test, Cheby1BPFQ15Coeffs) {
-    IIRCheby1<4, q15_t, FilterPassType::BAND_PASS> cheby1_bpf(0.7, 0.8, 0.1);
+    IIRCheby1<4, q15_t, FilterPassType::BandPass> cheby1_bpf(0.7, 0.8, 0.1);
 
     constexpr double GAIN_EXPECTED = 0.000378930474568963;
     /** @note MATLAB sorts zeros so that positive ones come first */
@@ -116,7 +116,7 @@ TEST(Cheby1Test, Cheby1BPFQ15Coeffs) {
 }
 
 TEST(Cheby1Test, Cheby1BSFQ15ImpulseResponse) {
-    IIRCheby1<5, q15_t, FilterPassType::BAND_STOP> cheby1_bsf(0.35, 0.45, 0.05);
+    IIRCheby1<5, q15_t, FilterPassType::BandStop> cheby1_bsf(0.35, 0.45, 0.05);
 
     const std::vector<double> expected = {
             0.5962523346637, -0.191490997136767, 0.524010068943812, 0.332580223670483,

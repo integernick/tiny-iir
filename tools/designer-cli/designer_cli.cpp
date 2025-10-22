@@ -16,7 +16,7 @@ using json = nlohmann::json;
 using namespace tiny_iir;
 
 namespace {
-std::string sos_line(const BiquadCoefficients &c) {
+std::string sos_line(const BiquadCoefficients<double> &c) {
     std::ostringstream ss;
     ss.setf(std::ios::fixed);
     ss << std::setprecision(15)
@@ -114,7 +114,7 @@ void make_filter(int order,
 
 template<int NUM_OF_BIQUAD_BLOCKS, typename T>
 void collect(T &f, std::vector<std::string> &v) {
-    const auto *s = reinterpret_cast<const BiquadCoefficients *>(f.get_coefficients());
+    const auto *s = reinterpret_cast<const BiquadCoefficients<double> *>(f.get_coefficients());
 
     for (int i = 0; i < NUM_OF_BIQUAD_BLOCKS; ++i) {
         v.push_back(sos_line(s[i]));
@@ -146,10 +146,10 @@ int main(int argc, char **argv) {
     }
 
     const std::unordered_map<std::string, FilterPassType> str2pass_map = {
-            {"lpf", FilterPassType::LOW_PASS},
-            {"hpf", FilterPassType::HIGH_PASS},
-            {"bpf", FilterPassType::BAND_PASS},
-            {"bsf", FilterPassType::BAND_STOP},
+            {"lpf", FilterPassType::LowPass},
+            {"hpf", FilterPassType::HighPass},
+            {"bpf", FilterPassType::BandPass},
+            {"bsf", FilterPassType::BandStop},
     };
 
     const std::string type = args["type"].as<std::string>();
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if ((pass == FilterPassType::BAND_PASS || pass == FilterPassType::BAND_STOP)) {
+    if ((pass == FilterPassType::BandPass || pass == FilterPassType::BandStop)) {
         if (fc1 >= fc2) {
             std::cerr << "Lowcut frequency >= highcut frequency\n";
             return 1;
@@ -197,44 +197,44 @@ int main(int argc, char **argv) {
     double gain = 1.0;
 
     if (type == "butter") {
-        if (pass == FilterPassType::LOW_PASS) {
-            make_filter<IIRButter, FilterPassType::LOW_PASS>(order, sos, gain, fc1);
-        } else if (pass == FilterPassType::HIGH_PASS) {
-            make_filter<IIRButter, FilterPassType::HIGH_PASS>(order, sos, gain, fc1);
-        } else if (pass == FilterPassType::BAND_PASS) {
-            make_filter<IIRButter, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2);
+        if (pass == FilterPassType::LowPass) {
+            make_filter<IIRButter, FilterPassType::LowPass>(order, sos, gain, fc1);
+        } else if (pass == FilterPassType::HighPass) {
+            make_filter<IIRButter, FilterPassType::HighPass>(order, sos, gain, fc1);
+        } else if (pass == FilterPassType::BandPass) {
+            make_filter<IIRButter, FilterPassType::BandPass>(order, sos, gain, fc1, fc2);
         } else {
-            make_filter<IIRButter, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2);
+            make_filter<IIRButter, FilterPassType::BandStop>(order, sos, gain, fc1, fc2);
         }
     } else if (type == "cheby1") {
-        if (pass == FilterPassType::LOW_PASS) {
-            make_filter<IIRCheby1, FilterPassType::LOW_PASS>(order, sos, gain, fc1, rp);
-        } else if (pass == FilterPassType::HIGH_PASS) {
-            make_filter<IIRCheby1, FilterPassType::HIGH_PASS>(order, sos, gain, fc1, rp);
-        } else if (pass == FilterPassType::BAND_PASS) {
-            make_filter<IIRCheby1, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2, rp);
+        if (pass == FilterPassType::LowPass) {
+            make_filter<IIRCheby1, FilterPassType::LowPass>(order, sos, gain, fc1, rp);
+        } else if (pass == FilterPassType::HighPass) {
+            make_filter<IIRCheby1, FilterPassType::HighPass>(order, sos, gain, fc1, rp);
+        } else if (pass == FilterPassType::BandPass) {
+            make_filter<IIRCheby1, FilterPassType::BandPass>(order, sos, gain, fc1, fc2, rp);
         } else {
-            make_filter<IIRCheby1, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2, rp);
+            make_filter<IIRCheby1, FilterPassType::BandStop>(order, sos, gain, fc1, fc2, rp);
         }
     } else if (type == "cheby2") {
-        if (pass == FilterPassType::LOW_PASS) {
-            make_filter<IIRCheby2, FilterPassType::LOW_PASS>(order, sos, gain, fc1, rs);
-        } else if (pass == FilterPassType::HIGH_PASS) {
-            make_filter<IIRCheby2, FilterPassType::HIGH_PASS>(order, sos, gain, fc1, rs);
-        } else if (pass == FilterPassType::BAND_PASS) {
-            make_filter<IIRCheby2, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2, rs);
+        if (pass == FilterPassType::LowPass) {
+            make_filter<IIRCheby2, FilterPassType::LowPass>(order, sos, gain, fc1, rs);
+        } else if (pass == FilterPassType::HighPass) {
+            make_filter<IIRCheby2, FilterPassType::HighPass>(order, sos, gain, fc1, rs);
+        } else if (pass == FilterPassType::BandPass) {
+            make_filter<IIRCheby2, FilterPassType::BandPass>(order, sos, gain, fc1, fc2, rs);
         } else {
-            make_filter<IIRCheby2, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2, rs);
+            make_filter<IIRCheby2, FilterPassType::BandStop>(order, sos, gain, fc1, fc2, rs);
         }
     } else if (type == "elliptic") {
-        if (pass == FilterPassType::LOW_PASS) {
-            make_filter<IIRElliptic, FilterPassType::LOW_PASS>(order, sos, gain, fc1, rp, rs);
-        } else if (pass == FilterPassType::HIGH_PASS) {
-            make_filter<IIRElliptic, FilterPassType::HIGH_PASS>(order, sos, gain, fc1, rp, rs);
-        } else if (pass == FilterPassType::BAND_PASS) {
-            make_filter<IIRElliptic, FilterPassType::BAND_PASS>(order, sos, gain, fc1, fc2, rp, rs);
+        if (pass == FilterPassType::LowPass) {
+            make_filter<IIRElliptic, FilterPassType::LowPass>(order, sos, gain, fc1, rp, rs);
+        } else if (pass == FilterPassType::HighPass) {
+            make_filter<IIRElliptic, FilterPassType::HighPass>(order, sos, gain, fc1, rp, rs);
+        } else if (pass == FilterPassType::BandPass) {
+            make_filter<IIRElliptic, FilterPassType::BandPass>(order, sos, gain, fc1, fc2, rp, rs);
         } else {
-            make_filter<IIRElliptic, FilterPassType::BAND_STOP>(order, sos, gain, fc1, fc2, rp, rs);
+            make_filter<IIRElliptic, FilterPassType::BandStop>(order, sos, gain, fc1, fc2, rp, rs);
         }
     } else {
         std::cerr << "Supported filter families:\n\tbutter cheby1 cheby2 elliptic\n";
@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 
     cfg["order"] = order;
 
-    if (pass == FilterPassType::LOW_PASS || pass == FilterPassType::HIGH_PASS) {
+    if (pass == FilterPassType::LowPass || pass == FilterPassType::HighPass) {
         cfg["freq_cutoff"] = fc1;
     } else {
         cfg["freq_lowcut"] = fc1;
