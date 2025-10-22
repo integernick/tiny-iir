@@ -12,7 +12,7 @@ namespace tiny_iir {
  * @tparam  PASS_TYPE     The filter pass type.
  * @tparam  DESIGN_T      The filter design type.
  */
-template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LOW_PASS,
+template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
 class IIRCheby1 final : public IIRFilter<N, T, PASS_TYPE, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
@@ -23,38 +23,43 @@ public:
     /**
      * @brief   Constructor (low-pass and high-pass).
      *
-     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     * @param normalized_cutoff_frequency   Normalized cutoff frequency.
+     * @param passband_ripple_db            Passband ripple in dB.
+     * @param crossfade_samples             The number of samples to smooth the transition between old and new coefficients.
      */
     IIRCheby1(DT normalized_cutoff_frequency, DT passband_ripple_db, uint32_t crossfade_samples = 0) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass);
 
     /**
      * @brief   Constructor (band-pass and band-stop).
      *
-     * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
+     * @param normalized_lowcut_freq    Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq   Normalized high-pass cutoff frequency.
+     * @param passband_ripple_db        Passband ripple in dB.
+     * @param crossfade_samples         The number of samples to smooth the transition between old and new coefficients.
      */
     IIRCheby1(DT normalized_lowcut_freq, DT normalized_highcut_freq, DT passband_ripple_db,
               uint32_t crossfade_samples = 0) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
     /**
      * @brief   Configure the filter (low-pass and high-pass).
      *
-     * @param normalized_cutoff_frequency  Normalized cutoff frequency.
-     * @param passband_ripple_db  Passband ripple in dB.
+     * @param normalized_cutoff_frequency   Normalized cutoff frequency.
+     * @param passband_ripple_db            Passband ripple in dB.
      */
     void configure(DT normalized_cutoff_frequency, DT passband_ripple_db) requires (
-    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
+    PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass);
 
     /**
      * @brief   Configure the filter (band-pass and band-stop).
      *
-     * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
-     * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
-     * @param passband_ripple_db  Passband ripple in dB.
+     * @param normalized_lowcut_freq    Normalized low-pass cutoff frequency.
+     * @param normalized_highcut_freq   Normalized high-pass cutoff frequency.
+     * @param passband_ripple_db        Passband ripple in dB.
      */
     void configure(DT normalized_lowcut_freq, DT normalized_highcut_freq, DT passband_ripple_db) requires (
-    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
+    PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
 private:
     /**
@@ -76,22 +81,22 @@ private:
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 IIRCheby1<N, T, PASS_TYPE, DT>::IIRCheby1(DT normalized_cutoff_frequency, DT passband_ripple_db,
                                           uint32_t crossfade_samples) requires (
-PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
-        : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
+PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass)
+        : IIRFilter<N, T, PASS_TYPE, DT>(crossfade_samples) {
     configure(normalized_cutoff_frequency, passband_ripple_db);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 IIRCheby1<N, T, PASS_TYPE, DT>::IIRCheby1(DT normalized_lowcut_freq, DT normalized_highcut_freq,
                                           DT passband_ripple_db, uint32_t crossfade_samples) requires (
-PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP)
-        : IIRFilter<N, T, PASS_TYPE>(crossfade_samples) {
+PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop)
+        : IIRFilter<N, T, PASS_TYPE, DT>(crossfade_samples) {
     configure(normalized_lowcut_freq, normalized_highcut_freq, passband_ripple_db);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRCheby1<N, T, PASS_TYPE, DT>::configure(DT normalized_cutoff_frequency, DT passband_ripple_db) requires (
-PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
+PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass) {
     passband_ripple_db = std::abs(passband_ripple_db);
 
     if (passband_ripple_db != _passband_ripple_db) {
@@ -99,13 +104,13 @@ PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
         init_analog();
     }
 
-    IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_cutoff_frequency);
+    IIRFilter<N, T, PASS_TYPE, DT>::calculate_cascades(normalized_cutoff_frequency);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRCheby1<N, T, PASS_TYPE, DT>::configure(DT normalized_lowcut_freq, DT normalized_highcut_freq,
                                                DT passband_ripple_db) requires (
-PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
+PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) {
     passband_ripple_db = std::abs(passband_ripple_db);
 
     if (passband_ripple_db != _passband_ripple_db) {
@@ -113,7 +118,7 @@ PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP
         init_analog();
     }
 
-    IIRFilter<N, T, PASS_TYPE>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
+    IIRFilter<N, T, PASS_TYPE, DT>::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
@@ -133,7 +138,7 @@ void IIRCheby1<N, T, PASS_TYPE, DT>::init_analog() {
     const DT cosh_mu = std::cosh(mu);
 
     if constexpr (N & 1) {
-        IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {
+        IIRFilter<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {
                 Complex<DT>{-sinh_mu, DT{0}},
                 Complex<DT>{std::numeric_limits<DT>::infinity(), DT{0}}
         };
@@ -147,7 +152,7 @@ void IIRCheby1<N, T, PASS_TYPE, DT>::init_analog() {
 
         const DT pole_s_real = -sinh_mu * sin_phi;
         const DT pole_s_imag = cosh_mu * cos_phi;
-        IIRFilter<N, T, PASS_TYPE>::_analog_pole_zero_pairs[i] = {
+        IIRFilter<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[i] = {
                 Complex{pole_s_real, pole_s_imag},
                 Complex{std::numeric_limits<DT>::infinity(), DT{0}}
         };

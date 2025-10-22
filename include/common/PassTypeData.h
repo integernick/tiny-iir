@@ -9,7 +9,7 @@ template<FilterPassType, uint32_t N, typename DESIGN_T>
 class PassTypeData;
 
 template<uint32_t N, typename DESIGN_T>
-class PassTypeData<FilterPassType::LOW_PASS, N, DESIGN_T> {
+class PassTypeData<FilterPassType::LowPass, N, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
                   "DESIGN_T must be float or double");
 
@@ -19,7 +19,7 @@ class PassTypeData<FilterPassType::LOW_PASS, N, DESIGN_T> {
 public:
     void init(DESIGN_T normalized_cutoff_frequency) {
         normalized_cutoff_frequency
-                = constrain(std::abs(normalized_cutoff_frequency), 0.0, DESIGN_T{1});
+                = constrain(std::abs(normalized_cutoff_frequency), DESIGN_T{0}, DESIGN_T{1});
         _wn_warped = std::tan(
                 (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
@@ -46,7 +46,7 @@ private:
 };
 
 template<uint32_t N, typename DESIGN_T>
-class PassTypeData<FilterPassType::HIGH_PASS, N, DESIGN_T> {
+class PassTypeData<FilterPassType::HighPass, N, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
                   "DESIGN_T must be float or double");
 
@@ -83,7 +83,7 @@ private:
 };
 
 template<uint32_t N, typename DESIGN_T>
-class PassTypeData<FilterPassType::BAND_PASS, N, DESIGN_T> {
+class PassTypeData<FilterPassType::BandPass, N, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
                   "DESIGN_T must be float or double");
 
@@ -154,7 +154,7 @@ private:
 };
 
 template<uint32_t N, typename DESIGN_T>
-class PassTypeData<FilterPassType::BAND_STOP, N, DESIGN_T> {
+class PassTypeData<FilterPassType::BandStop, N, DESIGN_T> {
     static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
                   "DESIGN_T must be float or double");
 
