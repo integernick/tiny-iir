@@ -59,9 +59,9 @@ public:
      * @param[out] out          The output buffer.
      * @paramp[in] num_samples  The number of samples to process.
      */
-    template<typename U, typename = std::enable_if_t<(std::is_same_v<U, double>
-                                                      && !std::is_same_v<T, double>)>>
-    void process(const U *x, T *out, uint32_t num_samples);
+    template<typename U>
+    void process(const U *x, T *out, uint32_t num_samples) requires (
+    std::is_same_v<U, double> and !std::is_same_v<T, double>);
 
     /**
      * @brief   Process a batch of samples (input is double, native is not double).
@@ -70,9 +70,9 @@ public:
      * @param num_samples   The number of samples to process.
      * @return  The final output sample.
      */
-    template<typename U, typename = std::enable_if_t<(std::is_same_v<U, double>
-                                                      && !std::is_same_v<T, double>)>>
-    [[nodiscard]] U process(const U *x, uint32_t num_samples);
+    template<typename U>
+    [[nodiscard]] U process(const U *x, uint32_t num_samples) requires (
+    std::is_same_v<U, double> and !std::is_same_v<T, double>);
 
     /**
      * @brief   Get the filter gain.
@@ -138,27 +138,21 @@ protected:
     explicit IIRFilter(uint32_t crossfade_samples = 0);
 
     /**
-     * @brief   Calculate biquad cascades coefficients.
+     * @brief   Calculate biquad cascades coefficients (low-pass and high-pass).
      *
-     * @tparam PT   Pass type (low-pass or high-pass).
      * @param normalized_cutoff_frequency  Normalized cutoff frequency.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
-                                         || PT == FilterPassType::HIGH_PASS)>>
-    void calculate_cascades(double normalized_cutoff_frequency);
+    void calculate_cascades(double normalized_cutoff_frequency) requires (
+    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
 
     /**
-     * @brief   Calculate biquad cascades coefficients.
+     * @brief   Calculate biquad cascades coefficients (band-pass and band-stop).
      *
-     * @tparam PT   Pass type (band-pass or band-stop).
      * @param cutlow_freq  Low cutoff frequency.
      * @param cuthigh_freq  High cutoff frequency.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
-                                         || PT == FilterPassType::BAND_STOP)>>
-    void calculate_cascades(double cutlow_freq, double cuthigh_freq);
+    void calculate_cascades(double cutlow_freq, double cuthigh_freq) requires (
+    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
 
     CascadeFilter<PassTypeData<PASS_TYPE, N>::CASCADE_ORDER, T> _cascade_filter;
 
@@ -194,18 +188,15 @@ private:
     void push_biquad_coefficients(BiquadCoefficients &biquad_coefficients);
 
     /**
-     * @brief   Add a pair of S-plane pole-zero pairs.
+     * @brief   Add a pair of S-plane pole-zero pairs (band-pass/band-stop filters with an odd order).
      *
      * @note    This one is needed for band-pass/band-stop filters with an odd design order;
      *          Each real-axis pole (zero) transforms to two poles (zeros) in the complex plane after the transform,
      *          after which the poles and zeros are arranged in pairs.
      * @param pole_zero_pairs  The pole-zero pairs.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<((PT == FilterPassType::BAND_PASS
-                                          || PT == FilterPassType::BAND_STOP)
-                                         && N & 1)>>
-    void add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs);
+    void add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs) requires (
+    (PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) and (N & 1) != 0);
 
     PassTypeData<PASS_TYPE, N> _pass_type_data;
     FrequencyConfig _frequency_config;
@@ -237,14 +228,16 @@ T IIRFilter<N, T, PASS_TYPE>::process(const T *x, uint32_t num_samples) {
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<typename U, typename>
-void IIRFilter<N, T, PASS_TYPE>::process(const U *x, T *out, uint32_t num_samples) {
+template<typename U>
+void IIRFilter<N, T, PASS_TYPE>::process(const U *x, T *out, uint32_t num_samples) requires (
+std::is_same_v<U, double> and !std::is_same_v<T, double>) {
     _cascade_filter.process(x, out, num_samples);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<typename U, typename>
-U IIRFilter<N, T, PASS_TYPE>::process(const U *x, uint32_t num_samples) {
+template<typename U>
+U IIRFilter<N, T, PASS_TYPE>::process(const U *x, uint32_t num_samples) requires (
+std::is_same_v<U, double> and !std::is_same_v<T, double>) {
     return _cascade_filter.process(x, num_samples);
 }
 
@@ -264,8 +257,8 @@ IIRFilter<N, T, PASS_TYPE>::IIRFilter(uint32_t crossfade_samples) {
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
-void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_frequency) {
+void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_frequency) requires (
+PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
     if (normalized_cutoff_frequency == _frequency_config.w1) {
         return;
     }
@@ -298,8 +291,8 @@ void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double normalized_cutoff_fre
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
-void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double cutlow_freq, double cuthigh_freq) {
+void IIRFilter<N, T, PASS_TYPE>::calculate_cascades(double cutlow_freq, double cuthigh_freq) requires (
+PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
     if (cuthigh_freq == _frequency_config.w2 && cutlow_freq == _frequency_config.w1) {
         return;
     }
@@ -396,8 +389,9 @@ void IIRFilter<N, T, PASS_TYPE>::push_biquad_coefficients(BiquadCoefficients &bi
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
-void IIRFilter<N, T, PASS_TYPE>::add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs) {
+void
+IIRFilter<N, T, PASS_TYPE>::add_pole_zero_pairs(const std::pair<PoleZeroPair, PoleZeroPair> &pole_zero_pairs) requires (
+(PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) and (N & 1) != 0) {
     // (z - z1)(z - z2)=z^2 - z(z1+z2) + z1z2 = z^2 * (1 - (z1+z2)z^-1 + (z1*z2)*z^-2)
     const Complex &p1 = pole_zero_pairs.first.pole;
     const Complex &p2 = pole_zero_pairs.second.pole;

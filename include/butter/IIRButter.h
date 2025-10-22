@@ -12,48 +12,40 @@ public:
     using IIRFilterBase = IIRFilter<N, T, PASS_TYPE>;
 
     /**
-     * @brief   Constructor.
+     * @brief   Constructor (low-pass and high-pass).
      *
      * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
-                                         || PT == FilterPassType::HIGH_PASS)>>
-    explicit IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples = 0);
+    explicit IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples = 0) requires (
+    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS);
 
     /**
-     * @brief   Constructor.
+     * @brief   Constructor (band-pass and band-stop).
      *
      * @param crossfade_samples  The number of samples to smooth the transition between old and new coefficients.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
-                                         || PT == FilterPassType::BAND_STOP)>>
-    IIRButter(double normalized_lowcut_freq, double normalized_highcut_freq, uint32_t crossfade_samples = 0);
+    IIRButter(double normalized_lowcut_freq, double normalized_highcut_freq, uint32_t crossfade_samples = 0) requires (
+    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP);
 
     /**
-     * @brief   Configure the filter.
+     * @brief   Configure the filter (low-pass and high-pass).
      *
      * @param normalized_cutoff_frequency  Normalized cutoff frequency.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::LOW_PASS
-                                         || PT == FilterPassType::HIGH_PASS)>>
-    void configure(double normalized_cutoff_frequency) {
+    void configure(double normalized_cutoff_frequency) requires (
+    PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS) {
         init_analog();
         IIRFilterBase::calculate_cascades(normalized_cutoff_frequency);
     }
 
     /**
-     * @brief   Configure the filter.
+     * @brief   Configure the filter (band-pass and band-stop).
      *
      * @param normalized_lowcut_freq  Normalized low-pass cutoff frequency.
      * @param normalized_highcut_freq  Normalized high-pass cutoff frequency.
      */
-    template<FilterPassType PT = PASS_TYPE,
-            typename = std::enable_if_t<(PT == FilterPassType::BAND_PASS
-                                         || PT == FilterPassType::BAND_STOP)>>
-    void configure(double normalized_lowcut_freq, double normalized_highcut_freq) {
+    void configure(double normalized_lowcut_freq, double normalized_highcut_freq) requires (
+    PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP) {
         init_analog();
         IIRFilterBase::calculate_cascades(normalized_lowcut_freq, normalized_highcut_freq);
     }
@@ -74,16 +66,16 @@ private:
 
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
-IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples)
+IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_cutoff_frequency, uint32_t crossfade_samples) requires (
+PASS_TYPE == FilterPassType::LOW_PASS or PASS_TYPE == FilterPassType::HIGH_PASS)
         : IIRFilterBase(crossfade_samples) {
     configure(normalized_cutoff_frequency);
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE>
-template<FilterPassType PT, typename>
 IIRButter<N, T, PASS_TYPE>::IIRButter(double normalized_lowcut_freq, double normalized_highcut_freq,
-                                      uint32_t crossfade_samples)
+                                      uint32_t crossfade_samples) requires (
+PASS_TYPE == FilterPassType::BAND_PASS or PASS_TYPE == FilterPassType::BAND_STOP)
         : IIRFilterBase(crossfade_samples) {
     configure(normalized_lowcut_freq, normalized_highcut_freq);
 }
@@ -107,7 +99,7 @@ void IIRButter<N, T, PASS_TYPE>::init_analog() {
         const double pole_s_real = -std::sin(phi);
         const double pole_s_imag = std::cos(phi);
         IIRFilterBase::_analog_pole_zero_pairs[i] = {
-                {pole_s_real, pole_s_imag},
+                {pole_s_real,    pole_s_imag},
                 {INFINITY_VALUE, 0}
         };
     }
