@@ -10,11 +10,8 @@ class PassTypeData;
 
 template<uint32_t N, typename DESIGN_T>
 class PassTypeData<FilterPassType::LowPass, N, DESIGN_T> {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+    static_assert(std::is_same_v<DESIGN_T, double> or std::is_same_v<DESIGN_T, float>,
                   "DESIGN_T must be float or double");
-
-    using Complex = Complex<DESIGN_T>;
-    using BiquadCoefficients = BiquadCoefficients<DESIGN_T>;
 
 public:
     void init(DESIGN_T normalized_cutoff_frequency) {
@@ -24,7 +21,7 @@ public:
                 (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
 
-    Complex transform(Complex s) {
+    Complex<DESIGN_T> transform(Complex<DESIGN_T> s) {
         if (s.real() == std::numeric_limits<DESIGN_T>::infinity()) {
             return {-DESIGN_T{1}, 0};
         }
@@ -33,7 +30,7 @@ public:
         return (DESIGN_T{1} + s) / (DESIGN_T{1} - s);
     }
 
-    [[nodiscard]] double calculate_gain(const BiquadCoefficients &biquad_coefficients) {
+    [[nodiscard]] double calculate_gain(const BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
         // Evaluate at z = 1 (s = 0)
         return (biquad_coefficients.b0 + biquad_coefficients.b1 + biquad_coefficients.b2)
                / (DESIGN_T{1} + biquad_coefficients.a1 + biquad_coefficients.a2);
@@ -47,11 +44,8 @@ private:
 
 template<uint32_t N, typename DESIGN_T>
 class PassTypeData<FilterPassType::HighPass, N, DESIGN_T> {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+    static_assert(std::is_same_v<DESIGN_T, double> or std::is_same_v<DESIGN_T, float>,
                   "DESIGN_T must be float or double");
-
-    using Complex = Complex<DESIGN_T>;
-    using BiquadCoefficients = BiquadCoefficients<DESIGN_T>;
 
 public:
     void init(DESIGN_T normalized_cutoff_frequency) {
@@ -61,7 +55,7 @@ public:
                 (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
 
-    Complex transform(Complex s) {
+    Complex<DESIGN_T> transform(Complex<DESIGN_T> s) {
         if (s.real() == std::numeric_limits<DESIGN_T>::infinity()) {
             return {1, 0};
         }
@@ -70,7 +64,7 @@ public:
         return -(DESIGN_T{1} + s) / (DESIGN_T{1} - s);
     }
 
-    [[nodiscard]] DESIGN_T calculate_gain(const BiquadCoefficients &biquad_coefficients) {
+    [[nodiscard]] DESIGN_T calculate_gain(const BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
         // Evaluate at z = -1 (s = infinity)
         return (biquad_coefficients.b0 - biquad_coefficients.b1 + biquad_coefficients.b2)
                / (DESIGN_T{1} - biquad_coefficients.a1 + biquad_coefficients.a2);
@@ -84,11 +78,8 @@ private:
 
 template<uint32_t N, typename DESIGN_T>
 class PassTypeData<FilterPassType::BandPass, N, DESIGN_T> {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+    static_assert(std::is_same_v<DESIGN_T, double> or std::is_same_v<DESIGN_T, float>,
                   "DESIGN_T must be float or double");
-
-    using Complex = Complex<DESIGN_T>;
-    using BiquadCoefficients = BiquadCoefficients<DESIGN_T>;
 
 public:
     void init(DESIGN_T cutlow_freq, DESIGN_T cuthigh_freq) {
@@ -117,16 +108,16 @@ public:
         _wn_peak = 2 * std::atan(w_avg);
     }
 
-    std::pair<Complex, Complex> transform(Complex s) {
+    std::pair<Complex<DESIGN_T>, Complex<DESIGN_T>> transform(Complex<DESIGN_T> s) {
         if (s.real() == std::numeric_limits<DESIGN_T>::infinity()) {
             return {{-DESIGN_T{1}, 0},
                     {DESIGN_T{1},  0}};
         }
 
         s *= _l_inv;
-        const Complex A = DESIGN_T{1} - s;
-        const Complex C = DESIGN_T{1} + s;
-        const Complex sqrtD = std::sqrt(_alpha2 - A * C);
+        const Complex<DESIGN_T> A = DESIGN_T{1} - s;
+        const Complex<DESIGN_T> C = DESIGN_T{1} + s;
+        const Complex<DESIGN_T> sqrtD = std::sqrt(_alpha2 - A * C);
         std::complex z1 = (_alpha + sqrtD) / A;
         std::complex z2 = (_alpha - sqrtD) / A;
 
@@ -134,11 +125,11 @@ public:
     }
 
     [[nodiscard]] DESIGN_T
-    calculate_gain(const BiquadCoefficients &biquad_coefficients) {
+    calculate_gain(const BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
         // Evaluate at z = e^(j*wn) (at the peak frequency)
-        const Complex z_inv = std::polar(DESIGN_T{1}, -_wn_peak);
-        const Complex z_inv2 = std::polar(DESIGN_T{1}, -2 * _wn_peak);
-        Complex response = biquad_coefficients.b0 + biquad_coefficients.b1 * z_inv + biquad_coefficients.b2 * z_inv2;
+        const Complex<DESIGN_T> z_inv = std::polar(DESIGN_T{1}, -_wn_peak);
+        const Complex<DESIGN_T> z_inv2 = std::polar(DESIGN_T{1}, -2 * _wn_peak);
+        Complex<DESIGN_T> response = biquad_coefficients.b0 + biquad_coefficients.b1 * z_inv + biquad_coefficients.b2 * z_inv2;
         response /= (DESIGN_T{1} + biquad_coefficients.a1 * z_inv + biquad_coefficients.a2 * z_inv2);
 
         return std::abs(response);
@@ -155,11 +146,8 @@ private:
 
 template<uint32_t N, typename DESIGN_T>
 class PassTypeData<FilterPassType::BandStop, N, DESIGN_T> {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+    static_assert(std::is_same_v<DESIGN_T, double> or std::is_same_v<DESIGN_T, float>,
                   "DESIGN_T must be float or double");
-
-    using Complex = Complex<DESIGN_T>;
-    using BiquadCoefficients = BiquadCoefficients<DESIGN_T>;
 
 public:
     void init(DESIGN_T cutlow_freq, DESIGN_T cuthigh_freq) {
@@ -184,22 +172,22 @@ public:
                 = {(1 - w0_sq) / (1 + w0_sq), 2 * _w0 / (1 + w0_sq)};
     }
 
-    std::pair<Complex, Complex> transform(Complex s) {
+    std::pair<Complex<DESIGN_T>, Complex<DESIGN_T>> transform(Complex<DESIGN_T> s) {
         if (s.real() == std::numeric_limits<DESIGN_T>::infinity()) {
             return {_mapped_infinity_value, std::conj(_mapped_infinity_value)};
         }
 
         const DESIGN_T w0_sq = _w0 * _w0;
         const DESIGN_T bw_sq = _bw * _bw;
-        const Complex sqrtD = std::sqrt(bw_sq - 4.0 * w0_sq * s * s);
-        const Complex den = (s * (1 + w0_sq) - _bw);
-        const Complex B = s * (1 - w0_sq);
-        const Complex z1 = (B + sqrtD) / den;
-        const Complex z2 = (B - sqrtD) / den;
+        const Complex<DESIGN_T> sqrtD = std::sqrt(bw_sq - 4.0 * w0_sq * s * s);
+        const Complex<DESIGN_T> den = (s * (1 + w0_sq) - _bw);
+        const Complex<DESIGN_T> B = s * (1 - w0_sq);
+        const Complex<DESIGN_T> z1 = (B + sqrtD) / den;
+        const Complex<DESIGN_T> z2 = (B - sqrtD) / den;
         return {z1, z2};
     }
 
-    [[nodiscard]] DESIGN_T calculate_gain(const BiquadCoefficients &biquad_coefficients) {
+    [[nodiscard]] DESIGN_T calculate_gain(const BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
         // Evaluate at z = 1 (s = 0)
         return (biquad_coefficients.b0 + biquad_coefficients.b1 + biquad_coefficients.b2)
                / (DESIGN_T{1} + biquad_coefficients.a1 + biquad_coefficients.a2);
@@ -210,6 +198,6 @@ public:
 private:
     DESIGN_T _w0;
     DESIGN_T _bw;
-    Complex _mapped_infinity_value;
+    Complex<DESIGN_T> _mapped_infinity_value;
 };
 } // namespace tiny_iir

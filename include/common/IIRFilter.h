@@ -16,8 +16,13 @@ namespace tiny_iir {
 template<uint32_t N, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
 class IIRFilter {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+    static_assert(std::is_same_v<T, double> or std::is_same_v<T, float>
+                  or std::is_same_v<T, q31_t> or std::is_same_v<T, q15_t>,
+                  "T must be double, float, q31_t, or q15_t");
+
+    static_assert(std::is_same_v<DESIGN_T, double> or std::is_same_v<DESIGN_T, float>,
                   "DESIGN_T must be float or double");
+
     using DT = DESIGN_T;
 
 public:

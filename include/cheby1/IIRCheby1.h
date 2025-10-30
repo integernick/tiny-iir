@@ -15,8 +15,6 @@ namespace tiny_iir {
 template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
 class IIRCheby1 final : public IIRFilter<N, T, PASS_TYPE, DESIGN_T> {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
-                  "DESIGN_T must be float or double");
     using DT = DESIGN_T;
 
 public:

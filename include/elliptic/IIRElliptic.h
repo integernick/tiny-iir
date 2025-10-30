@@ -16,11 +16,7 @@ namespace tiny_iir {
 template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
         typename DESIGN_T = double>
 class IIRElliptic : public IIRFilter<N, T, PASS_TYPE, DESIGN_T> {
-    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
-                  "DESIGN_T must be float or double");
     using DT = DESIGN_T;
-
-    using Complex = Complex<DT>;
 
 public:
     /**
@@ -72,7 +68,7 @@ public:
 
 private:
     static constexpr uint32_t L = N / 2;
-    static constexpr Complex IMAG_UNIT = {DT{0}, DT{1}};
+    static constexpr Complex<DT> IMAG_UNIT = {DT{0}, DT{1}};
 
     /**
      * @brief   Get the analog gain.
@@ -160,7 +156,7 @@ void IIRElliptic<N, T, PASS_TYPE, DT>::init_analog() {
     const DT K1 = calculate_elliptic_integral(k1);
     const DT K1_prime = calculate_elliptic_integral(get_complimentary(k1));
     const DT R1 = K1_prime / K1;
-    const Complex v0_c = -IMAG_UNIT * asn<DT>(IMAG_UNIT / eps_p, k1, R1) / static_cast<DT>(N);
+    const Complex<DT> v0_c = -IMAG_UNIT * asn<DT>(IMAG_UNIT / eps_p, k1, R1) / static_cast<DT>(N);
     const DT v0 = v0_c.real();
 
     const DT k = solve_degree_equation<DT>(N, get_complimentary(k1)); // The ratio (w_p / w_s) < 1
@@ -170,16 +166,16 @@ void IIRElliptic<N, T, PASS_TYPE, DT>::init_analog() {
     }
 
     if constexpr (N & 1) {
-        const Complex pole = IMAG_UNIT * sn<DT>(IMAG_UNIT * v0, k);
-        const Complex zero = Complex{std::numeric_limits<DT>::infinity(), DT{0}};
+        const Complex<DT> pole = IMAG_UNIT * sn<DT>(IMAG_UNIT * v0, k);
+        const Complex<DT> zero = Complex<DT>{std::numeric_limits<DT>::infinity(), DT{0}};
         IIRFilter<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
     }
 
     for (uint32_t i = 0; i < N / 2; ++i) {
         const DT u_i = (DT{2} * i + DT{1}) / N;
         const DT zeta = cd<DT>(u_i, k).real();
-        const Complex zero = Complex{DT{0}, DT{1} / (k * zeta)};
-        const Complex pole = IMAG_UNIT * cd<DT>(u_i - IMAG_UNIT * v0, k);
+        const Complex<DT> zero = Complex<DT>{DT{0}, DT{1} / (k * zeta)};
+        const Complex<DT> pole = IMAG_UNIT * cd<DT>(u_i - IMAG_UNIT * v0, k);
 
         IIRElliptic<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[i] = {pole, zero};
     }
