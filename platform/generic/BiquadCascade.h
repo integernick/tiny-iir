@@ -4,10 +4,10 @@
 
 #include <common/common_utils.h>
 
-namespace tiny_iir {
-
 using q31_t = int32_t;
 using q15_t = int16_t;
+
+namespace tiny_iir {
 
 /**
  * @brief   Biquad cascade for double native type.
@@ -25,6 +25,9 @@ struct BiquadCascade;
  */
 template<typename T, typename DESIGN_T>
 class BiquadCascade {
+    static_assert(std::is_same_v<T, float> or std::is_same_v<T, double>,
+                  "T must be float or double for a generic CascadeFilter");
+
 public:
     /**
      * @brief   Get the number of biquad blocks set.
@@ -96,8 +99,8 @@ public:
      */
     [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const {
         BiquadCoefficients<DESIGN_T> coeffs;
-        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
-                            coeffs_per_stage<float>::value);
+        to_native(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
+                  coeffs_per_stage<float>::value);
         coeffs.a1 = -coeffs.a1;
         coeffs.a2 = -coeffs.a2;
 

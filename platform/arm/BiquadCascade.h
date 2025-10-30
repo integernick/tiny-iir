@@ -132,8 +132,8 @@ public:
      */
     [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const {
         BiquadCoefficients<DESIGN_T> coeffs;
-        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<double>::value], &coeffs.b0,
-                            coeffs_per_stage<double>::value);
+        to_native(&_coefficients[biquad_idx * coeffs_per_stage<double>::value], &coeffs.b0,
+                  coeffs_per_stage<double>::value);
         coeffs.a1 = -coeffs.a1;
         coeffs.a2 = -coeffs.a2;
 
@@ -237,8 +237,8 @@ public:
      */
     [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const {
         BiquadCoefficients<DESIGN_T> coeffs;
-        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
-                            coeffs_per_stage<float>::value);
+        to_native(&_coefficients[biquad_idx * coeffs_per_stage<float>::value], &coeffs.b0,
+                  coeffs_per_stage<float>::value);
         coeffs.a1 = -coeffs.a1;
         coeffs.a2 = -coeffs.a2;
 
@@ -365,7 +365,7 @@ public:
         normalized_biquad_coefficients.a1 *= scale;
         normalized_biquad_coefficients.a2 *= scale;
 
-        to_native<q31_t>(&normalized_biquad_coefficients.b0, coefficients, coeffs_per_stage<q31_t>::value);
+        to_native(&normalized_biquad_coefficients.b0, coefficients, coeffs_per_stage<q31_t>::value);
 
         _num_biquad_blocks_set++;
     }
@@ -378,8 +378,8 @@ public:
      */
     [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const {
         BiquadCoefficients<DESIGN_T> coeffs;
-        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<q31_t>::value], &coeffs.b0,
-                            coeffs_per_stage<q31_t>::value);
+        to_native(&_coefficients[biquad_idx * coeffs_per_stage<q31_t>::value], &coeffs.b0,
+                  coeffs_per_stage<q31_t>::value);
         coeffs.a1 = -coeffs.a1;
         coeffs.a2 = -coeffs.a2;
 
@@ -403,13 +403,13 @@ public:
         }
 
         // Clamp mantissa away from 1.0 to avoid rounding to 2^31 in Q31
-        const DESIGN_T one_minus = std::nextafter(1.0, 0.0);
+        const DESIGN_T one_minus = std::nextafter(DESIGN_T{1}, DESIGN_T{0});
         if (g > one_minus) {
             g = one_minus;
         }
 
         q31_t m_q31;
-        arm_f64_to_q31(&g, &m_q31, 1);
+        to_native(&g, &m_q31, 1);
 
         // Multiply current Q31 gain by mantissa
         q31_t prod;
@@ -420,7 +420,7 @@ public:
         int8_t absorb = (e < hr) ? e : hr;
 
         if (absorb > 0) {
-            prod = (q31_t) ((uint32_t) prod << absorb);
+            prod = (q31_t)((uint32_t) prod << absorb);
             e -= absorb;
         }
 
@@ -573,9 +573,9 @@ public:
         normalized_biquad_coefficients.a2 *= scale;
 
         // arm_biquad_casd_df1_inst_q15 expects [b0, 0, b1, b2, a1, a2]
-        arm_f64_to_q15(&normalized_biquad_coefficients.b0, coefficients, 1); // b0
+        to_native(&normalized_biquad_coefficients.b0, coefficients, 1); // b0
         coefficients[1] = 0;
-        to_native<q15_t>(&normalized_biquad_coefficients.b1, coefficients + 2, 4); // b1, b2, a1, a2
+        to_native(&normalized_biquad_coefficients.b1, coefficients + 2, 4); // b1, b2, a1, a2
 
         _num_biquad_blocks_set++;
     }
@@ -589,8 +589,8 @@ public:
     [[nodiscard]] BiquadCoefficients<DESIGN_T> get_biquad_coefficients(uint32_t biquad_idx) const {
         BiquadCoefficients<DESIGN_T> coeffs;
         // arm_biquad_casd_df1_inst_q15 holds [b0, 0, b1, b2, a1, a2]
-        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<q15_t>::value], &coeffs.b0, 1);
-        to_native<DESIGN_T>(&_coefficients[biquad_idx * coeffs_per_stage<q15_t>::value + 2], &coeffs.b1, 4);
+        to_native(&_coefficients[biquad_idx * coeffs_per_stage<q15_t>::value], &coeffs.b0, 1);
+        to_native(&_coefficients[biquad_idx * coeffs_per_stage<q15_t>::value + 2], &coeffs.b1, 4);
         coeffs.a1 = -coeffs.a1;
         coeffs.a2 = -coeffs.a2;
 
@@ -621,7 +621,7 @@ public:
         }
 
         q15_t m_q15;
-        to_native<q15_t>(&g, &m_q15, 1);
+        to_native(&g, &m_q15, 1);
 
         // Multiply current Q15 gain by mantissa
         q15_t prod;

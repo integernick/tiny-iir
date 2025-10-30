@@ -128,7 +128,7 @@ static inline void init_landen_sequence(DESIGN_T *seq, DESIGN_T k) {
  */
 template<typename DESIGN_T>
 [[nodiscard]] inline static Complex<DESIGN_T> sn(Complex<DESIGN_T> u, DESIGN_T k) {
-    Complex<DESIGN_T> w = std::sin(u * std::numbers::pi_v<DESIGN_T> / 2.0);
+    Complex<DESIGN_T> w = std::sin(u * std::numbers::pi_v<DESIGN_T> / DESIGN_T{2});
 
     DESIGN_T landen_seq[NUM_OF_LANDEN_ITERATIONS];
     init_landen_sequence(landen_seq, k);
@@ -200,7 +200,7 @@ template<typename DESIGN_T>
 
     const Complex u = (w == DESIGN_T{1})
                       ? DESIGN_T{0}
-                      : DESIGN_T{2} * std::numbers::inv_pi * std::acos(w);
+                      : DESIGN_T{2} * std::numbers::inv_pi_v<DESIGN_T> * std::acos(w);
 
     const Complex acd = {srem<DESIGN_T>(u.real(), DESIGN_T{4}), srem(u.imag(), DESIGN_T{2} * R)};
     return DESIGN_T{1} - acd; // Using cd(z, k) = sn(z + K, k)

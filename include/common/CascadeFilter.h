@@ -24,6 +24,9 @@ namespace tiny_iir {
  */
 template<uint32_t N, typename T, typename DESIGN_T>
 class CascadeFilter {
+    static_assert(std::is_same_v<DESIGN_T, float> or std::is_same_v<DESIGN_T, double>,
+                  "DESIGN_T must be float or double");
+
 public:
     /**
      * @brief   Constructor.
@@ -362,7 +365,7 @@ U CascadeFilter<N, T, DESIGN_T>::process(U x) {
 
     T out_native = process(x_native);
     U out_derived;
-    to_native<U, T>(&out_native, &out_derived, 1);
+    to_native(&out_native, &out_derived, 1);
     return out_derived;
 }
 
