@@ -37,6 +37,7 @@ struct BiquadCoefficients {
 /**
  * @brief   Constrain a value to a specified range.
  *
+ * @tparam T The type of the value to constrain.
  * @param value  The value to constrain.
  * @param min  The minimum value.
  * @param max  The maximum value.
@@ -47,6 +48,24 @@ constexpr T constrain(T value, T min, T max) {
     return value < min ? min
             : value > max ? max
             : value;
+}
+
+/**
+ * @brief   Clamp frequency to safe range..
+ *
+ * @details Frequencies too close to 0 or Nyquist can cause numerical issues
+ *          in the bilinear transform.
+ *
+ * @tparam DESIGN_T         The design type (float or double).
+ * @param normalized_freq   Normalized frequency (0 to 1, where 1 = Nyquist).
+ * @return  Clamped frequency in safe range.
+ */
+template<typename DESIGN_T>
+DESIGN_T clamp_frequency(DESIGN_T frequency) {
+    constexpr DESIGN_T MIN_FREQ = DESIGN_T{0.0001};  // 0.01% of Nyquist
+    constexpr DESIGN_T MAX_FREQ = DESIGN_T{0.9999};  // 99.99% of Nyquist
+
+    return constrain(std::abs(frequency), MIN_FREQ, MAX_FREQ);
 }
 
 }

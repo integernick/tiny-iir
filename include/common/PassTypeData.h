@@ -15,8 +15,7 @@ class PassTypeData<FilterPassType::LowPass, N, DESIGN_T> {
 
 public:
     void init(DESIGN_T normalized_cutoff_frequency) {
-        normalized_cutoff_frequency
-                = constrain(std::abs(normalized_cutoff_frequency), DESIGN_T{0}, DESIGN_T{1});
+        normalized_cutoff_frequency = clamp_frequency(normalized_cutoff_frequency);
         _wn_warped = std::tan(
                 (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
@@ -49,8 +48,7 @@ class PassTypeData<FilterPassType::HighPass, N, DESIGN_T> {
 
 public:
     void init(DESIGN_T normalized_cutoff_frequency) {
-        normalized_cutoff_frequency
-                = constrain(std::abs(normalized_cutoff_frequency), DESIGN_T{0}, DESIGN_T{1});
+        normalized_cutoff_frequency = clamp_frequency(normalized_cutoff_frequency);
         _wn_warped = DESIGN_T{1} / std::tan(
                 (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
@@ -85,8 +83,8 @@ public:
     void init(DESIGN_T cutlow_freq, DESIGN_T cuthigh_freq) {
         static constexpr DESIGN_T m_pi_2_v = std::numbers::pi_v<DESIGN_T> * static_cast<DESIGN_T>(0.5);
 
-        cutlow_freq = constrain(std::abs(cutlow_freq), 0.0, DESIGN_T{1});
-        cuthigh_freq = constrain(std::abs(cuthigh_freq), 0.0, DESIGN_T{1});
+        cutlow_freq = clamp_frequency(cutlow_freq);
+        cuthigh_freq = clamp_frequency(cuthigh_freq);
 
         if (cutlow_freq > cuthigh_freq) {
             DESIGN_T temp = cuthigh_freq;
@@ -153,8 +151,8 @@ public:
     void init(DESIGN_T cutlow_freq, DESIGN_T cuthigh_freq) {
         static constexpr DESIGN_T m_pi_2_v = std::numbers::pi_v<DESIGN_T> * static_cast<DESIGN_T>(0.5);
 
-        cutlow_freq = constrain(std::abs(cutlow_freq), 0.0, DESIGN_T{1});
-        cuthigh_freq = constrain(std::abs(cuthigh_freq), 0.0, DESIGN_T{1});
+        cutlow_freq = clamp_frequency(cutlow_freq);
+        cuthigh_freq = clamp_frequency(cuthigh_freq);
 
         if (cutlow_freq > cuthigh_freq) {
             DESIGN_T temp = cuthigh_freq;
