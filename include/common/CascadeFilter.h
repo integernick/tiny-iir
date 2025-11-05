@@ -191,7 +191,8 @@ public:
     static constexpr uint32_t NUMBER_OF_BIQUAD_BLOCKS = (N + 1) / 2;
     static constexpr uint32_t NUMBER_OF_COEFFICIENTS
             = NUMBER_OF_BIQUAD_BLOCKS * coeffs_per_stage<T>::value;
-    static constexpr uint32_t DELAY_LINE_SIZE = NUMBER_OF_BIQUAD_BLOCKS * BiquadCascade<T, DESIGN_T>::BLOCK_DELAY_LINE_SIZE;
+    static constexpr uint32_t DELAY_LINE_SIZE =
+            NUMBER_OF_BIQUAD_BLOCKS * BiquadCascade<T, DESIGN_T>::BLOCK_DELAY_LINE_SIZE;
     static constexpr uint32_t PROCESS_CHUNK_SIZE = TINY_IIR_CHUNK_SIZE;
 
 private:
@@ -343,22 +344,35 @@ void CascadeFilter<N, T, DESIGN_T>::process(const T *in, T *out, uint32_t num_sa
         return;
     }
 
-    T input_buffer[num_samples];
-    scale(in, _gain_crossfade, input_buffer, num_samples);
+    T in_buf[PROCESS_CHUNK_SIZE];
 
-    _biquad_cascade.process_cascade(input_buffer, out, num_samples);
+    for (uint32_t i = 0; i < num_samples;) {
+        const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
+        scale(in + i, _gain_crossfade, in_buf, n);
+        _biquad_cascade.process_cascade(in_buf, out + i, n);
+        i += n;
+    }
 }
 
 template<uint32_t N, typename T, typename DESIGN_T>
 T CascadeFilter<N, T, DESIGN_T>::process(const T *x, uint32_t num_samples) {
     if (num_samples == 0) {
-        return 0;
+        return T{};
     }
 
-    T output_buffer[num_samples];
-    process(x, output_buffer, num_samples);
+    T in_buf[PROCESS_CHUNK_SIZE];
+    T out_buf[PROCESS_CHUNK_SIZE];
+    T last{};
 
-    return output_buffer[num_samples - 1];
+    for (uint32_t i = 0; i < num_samples;) {
+        const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
+        scale(x + i, _gain_crossfade, in_buf, n);
+        _biquad_cascade.process_cascade(in_buf, out_buf, n);
+        last = out_buf[n - 1];
+        i += n;
+    }
+
+    return last;
 }
 
 template<uint32_t N, typename T, typename DESIGN_T>
@@ -382,7 +396,7 @@ void CascadeFilter<N, T, DESIGN_T>::process(const U *in, U *out, uint32_t num_sa
 
     T in_native[PROCESS_CHUNK_SIZE];
 
-    for (uint32_t i = 0; i < num_samples; ) {
+    for (uint32_t i = 0; i < num_samples;) {
         const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
         to_native(in + i, in_native, n);
         process(in_native, in_native, n);
@@ -401,7 +415,7 @@ U CascadeFilter<N, T, DESIGN_T>::process(const U *in, uint32_t num_samples) {
     U last{};
     T in_native[PROCESS_CHUNK_SIZE];
 
-    for (uint32_t i = 0; i < num_samples; ) {
+    for (uint32_t i = 0; i < num_samples;) {
         const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
         to_native(in + i, in_native, n);
         process(in_native, in_native, n);
