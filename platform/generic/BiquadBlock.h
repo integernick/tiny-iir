@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace tiny_iir {
 /**
  * @addtogroup tiny_iir_module
