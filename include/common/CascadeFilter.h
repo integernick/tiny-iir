@@ -6,8 +6,12 @@
 
 #include <cstring>
 
-#ifndef TINY_IIR_CASCADE_FILTER_DEBUG
+#if !defined(TINY_IIR_CASCADE_FILTER_DEBUG)
 #define TINY_IIR_CASCADE_FILTER_DEBUG    0
+#endif
+
+#if !defined(TINY_IIR_CHUNK_SIZE)
+#define TINY_IIR_CHUNK_SIZE     32
 #endif
 
 static_assert(TINY_IIR_CHUNK_SIZE > 0, "TINY_IIR_CHUNK_SIZE must be > 0");

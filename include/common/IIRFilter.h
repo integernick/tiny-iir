@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CascadeFilter.h"
-#include "PassTypeData.h"
+#include "PassTypeTransform.h"
 
 namespace tiny_iir {
 
@@ -122,11 +122,11 @@ public:
      */
     void reset_state();
 
-    static constexpr uint32_t REAL_ORDER = PassTypeData<PASS_TYPE, N, DT>::CASCADE_ORDER;
+    static constexpr uint32_t REAL_ORDER = PassTypeTransform<PASS_TYPE, N, DT>::CASCADE_ORDER;
 
     // Not just CascadeFilter<N, T>::NUMBER_OF_BIQUAD_BLOCKS, because the order is doubled for band-pass/band-stop
     static constexpr uint32_t NUMBER_OF_BIQUAD_BLOCKS
-            = CascadeFilter<PassTypeData<PASS_TYPE, N, DT>::CASCADE_ORDER, T, DT>::NUMBER_OF_BIQUAD_BLOCKS;
+            = CascadeFilter<PassTypeTransform<PASS_TYPE, N, DT>::CASCADE_ORDER, T, DT>::NUMBER_OF_BIQUAD_BLOCKS;
 
 protected:
     /**
@@ -163,7 +163,7 @@ protected:
     void calculate_cascades(DT cutlow_freq, DT cuthigh_freq) requires (
     PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop);
 
-    CascadeFilter<PassTypeData<PASS_TYPE, N, DT>::CASCADE_ORDER, T, DT> _cascade_filter;
+    CascadeFilter<PassTypeTransform<PASS_TYPE, N, DT>::CASCADE_ORDER, T, DT> _cascade_filter;
 
     // Pole/zero pairs without the conjugates (last one is the pair with pole on the real axis)
     PoleZeroPair<DT> _analog_pole_zero_pairs[(N + 1) / 2];
@@ -207,7 +207,7 @@ private:
     void add_pole_zero_pairs(const std::pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
     (PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) and (N & 1) != 0);
 
-    PassTypeData<PASS_TYPE, N, DT> _pass_type_data;
+    PassTypeTransform<PASS_TYPE, N, DT> _pass_type_data;
     FrequencyConfig _frequency_config;
 };
 
@@ -398,8 +398,7 @@ void IIRFilter<N, T, PASS_TYPE, DT>::push_biquad_coefficients(BiquadCoefficients
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
-void
-IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_pairs(
+void IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_pairs(
         const std::pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
 (PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) and (N & 1) != 0) {
     // (z - z1)(z - z2)=z^2 - z(z1+z2) + z1z2 = z^2 * (1 - (z1+z2)z^-1 + (z1*z2)*z^-2)

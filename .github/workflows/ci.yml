@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.impl }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,  impl: generic }
+          - { os: macos-latest,   impl: generic }
+          - { os: windows-latest, impl: generic }
+          - { os: macos-latest,   impl: cmsis }
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        shell: bash
+        run: |
+          if [ "${{ matrix.impl }}" = "cmsis" ]; then
+            cmake -S . -B build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DTINY_IIR_BUILD_WITH_CMSIS=ON \
+              -DTINY_IIR_CMSIS_CORE_DIR="${{ github.workspace }}/CMSIS_5/CMSIS/Core/Include" \
+              -DTINY_IIR_BUILD_TESTS=ON \
+              -DTINY_IIR_BUILD_TOOLS=OFF \
+              -DTINY_IIR_CHUNK_SIZE=32
+          else
+            cmake -S . -B build \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DTINY_IIR_BUILD_WITH_CMSIS=OFF \
+              -DTINY_IIR_BUILD_TESTS=ON \
+              -DTINY_IIR_BUILD_TOOLS=OFF \
+              -DTINY_IIR_CHUNK_SIZE=32
+          fi
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Release --parallel 4
+
+      - name: Test
+        shell: bash
+        run: ctest --test-dir build -C Release --output-on-failure --parallel 4
