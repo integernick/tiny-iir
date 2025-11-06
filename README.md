@@ -130,3 +130,6 @@ python3 tools/plot_sos.py tools/demo.json cheby2_bpf     # chebyshev ii band‑p
 python3 tools/plot_sos.py tools/demo.json elliptic_bsf   # elliptic band‑stop
 ```
 ![elliptic band‑stop](figures/elliptic_bsf.png)
+
+## credits
+learned a lot from vinnie falco’s [dspfilters](https://github.com/vinniefalco/DSPFilters)
