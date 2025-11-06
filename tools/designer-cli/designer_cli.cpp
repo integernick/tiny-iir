@@ -33,83 +33,35 @@ template<int NUM_OF_BIQUAD_BLOCKS, typename T>
 static void collect(T &f, std::vector<std::string> &v);
 
 template<template<int, typename, FilterPassType> class Family,
-         FilterPassType P,
-         typename... Args>
+        FilterPassType P,
+        typename... Args>
 void make_filter(int order,
                  std::vector<std::string> &sos_out,
                  double &gain_out,
                  Args &&... args) {
-    auto invoke = [&](auto N_c) {
-        constexpr int N = N_c.value;
-        Family<N, double, P> iir(std::forward<Args>(args)...);
+    constexpr int MAX_ORDER = 20;
+
+    if (order < 1 || order > MAX_ORDER)
+        throw std::invalid_argument("order 1-20 only");
+
+    // Instantiate Family<ORDER, double, P>, grab gain, collect SOS
+    auto instantiate_and_collect = [&](auto order_tag) {
+        constexpr int ORDER = decltype(order_tag)::value;
+        Family<ORDER, double, P> iir(std::forward<Args>(args)...);
         gain_out = iir.get_gain();
-        collect<Family<N, double, P>::NUMBER_OF_BIQUAD_BLOCKS>(iir, sos_out);
+        collect<Family<ORDER, double, P>::NUMBER_OF_BIQUAD_BLOCKS>(iir, sos_out);
     };
 
-    switch (order) {
-        case 1:
-            invoke(std::integral_constant<int, 1>{});
-            break;
-        case 2:
-            invoke(std::integral_constant<int, 2>{});
-            break;
-        case 3:
-            invoke(std::integral_constant<int, 3>{});
-            break;
-        case 4:
-            invoke(std::integral_constant<int, 4>{});
-            break;
-        case 5:
-            invoke(std::integral_constant<int, 5>{});
-            break;
-        case 6:
-            invoke(std::integral_constant<int, 6>{});
-            break;
-        case 7:
-            invoke(std::integral_constant<int, 7>{});
-            break;
-        case 8:
-            invoke(std::integral_constant<int, 8>{});
-            break;
-        case 9:
-            invoke(std::integral_constant<int, 9>{});
-            break;
-        case 10:
-            invoke(std::integral_constant<int, 10>{});
-            break;
-        case 11:
-            invoke(std::integral_constant<int, 11>{});
-            break;
-        case 12:
-            invoke(std::integral_constant<int, 12>{});
-            break;
-        case 13:
-            invoke(std::integral_constant<int, 13>{});
-            break;
-        case 14:
-            invoke(std::integral_constant<int, 14>{});
-            break;
-        case 15:
-            invoke(std::integral_constant<int, 15>{});
-            break;
-        case 16:
-            invoke(std::integral_constant<int, 16>{});
-            break;
-        case 17:
-            invoke(std::integral_constant<int, 17>{});
-            break;
-        case 18:
-            invoke(std::integral_constant<int, 18>{});
-            break;
-        case 19:
-            invoke(std::integral_constant<int, 19>{});
-            break;
-        case 20:
-            invoke(std::integral_constant<int, 20>{});
-            break;
-        default:
-            throw std::invalid_argument("order 1‑20 only");
-    }
+    bool matched = false;
+    // Iterate ORDINAL (0..MAX_ORDER-1); run only when (order == ORDINAL+1)
+    [&]<std::size_t... ordinal_idx>(std::index_sequence<ordinal_idx...>) {
+        ((order == int(ordinal_idx + 1)
+          ? (instantiate_and_collect(std::integral_constant<int, int(ordinal_idx + 1)>{}),
+                        matched = true, 0)
+          : 0), ... );
+    }(std::make_index_sequence<MAX_ORDER>{});
+
+    (void) matched;
 }
 
 template<int NUM_OF_BIQUAD_BLOCKS, typename T>

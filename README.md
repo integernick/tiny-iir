@@ -101,7 +101,7 @@ tiny_iir::IIRCheby2<6, q31_t, tiny_iir::FilterPassType::LowPass, float> h{0.1f, 
 ## cli
 generate sos as json for plotting or shipping:
 ```sh
-tiny-iir-designer-cli -t cheby1 -p bsf -o 13 -l 0.2 -h 0.9 --ripple 0.01 --stop 40 -j out.json
+./build/tools/designer-cli/tiny-iir-designer-cli -t cheby1 -p bsf -o 13 -l 0.2 -h 0.9 --ripple 0.01 --stop 40 -j out.json
 ```
 
 ## plot
