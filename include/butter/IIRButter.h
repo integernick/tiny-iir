@@ -99,7 +99,8 @@ void IIRButter<N, T, PASS_TYPE, DT>::init_analog() {
     }
 
     for (uint32_t i = 0; i < N / 2; ++i) {
-        const DT phi = static_cast<DT>(2 * i + 1) * M_PI_2 / N; // Angle from the imaginary axis
+        // Angle from the imaginary axis:
+        const DT phi = static_cast<DT>(2 * i + 1) * (std::numbers::pi_v<DT> / DT{2}) / N;
         const DT pole_s_real = -std::sin(phi);
         const DT pole_s_imag = std::cos(phi);
         IIRFilterBase::_analog_pole_zero_pairs[i] = {

@@ -124,13 +124,13 @@ DT IIRCheby1<N, T, PASS_TYPE, DT>::get_analog_gain() const {
     if constexpr (N & 1) {
         return 1.0;
     } else {
-        return std::exp(-_passband_ripple_db / 20 * M_LN10);
+        return std::exp(-_passband_ripple_db / DT{20} * std::numbers::ln10_v<DT>);
     }
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRCheby1<N, T, PASS_TYPE, DT>::init_analog() {
-    const DT epsilon = std::sqrt(std::exp(_passband_ripple_db * 0.1 * M_LN10) - 1);
+    const DT epsilon = std::sqrt(std::exp(_passband_ripple_db * DT{0.1} * std::numbers::ln10_v<DT>) - 1);
     const DT mu = std::asinh(DT{1} / epsilon) / N;
     const DT sinh_mu = std::sinh(mu);
     const DT cosh_mu = std::cosh(mu);
