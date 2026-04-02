@@ -1,7 +1,9 @@
 #pragma once
 
 #include <common/common_utils.h>
-#include <numbers>
+#include <common/tiny_iir_complex_math.h>
+
+#include <math.h>
 
 namespace tiny_iir {
 
@@ -16,7 +18,7 @@ static constexpr uint32_t NUM_OF_LANDEN_ITERATIONS = 5;
  */
 template<typename DESIGN_T>
 [[nodiscard]] inline DESIGN_T get_complimentary(DESIGN_T k) {
-    return std::sqrt(DESIGN_T{1} - k * k);
+    return sqrt(DESIGN_T{1} - k * k);
 }
 
 /**
@@ -30,7 +32,7 @@ template<typename DESIGN_T>
 template<typename DESIGN_T>
 [[nodiscard]] inline DESIGN_T arithmetic_geometric_mean(DESIGN_T a, DESIGN_T b) {
     if (a < b) {
-        std::swap(a, b);
+        tiny_iir_swap(a, b);
     }
 
     DESIGN_T c = a - b;
@@ -40,7 +42,7 @@ template<typename DESIGN_T>
         c_prev = c;
         c = (a - b) / DESIGN_T{2};
         DESIGN_T a_new = (a + b) / DESIGN_T{2};
-        b = std::sqrt(a * b);
+        b = sqrt(a * b);
         a = a_new;
     } while (c < c_prev);
 
@@ -76,7 +78,7 @@ template<typename DESIGN_T>
     }
 
     const DESIGN_T agm = arithmetic_geometric_mean(DESIGN_T{1}, get_complimentary(k));
-    return std::numbers::pi_v<DESIGN_T> / (DESIGN_T{2} * agm);
+    return numbers::pi_v<DESIGN_T> / (DESIGN_T{2} * agm);
 }
 
 /**
@@ -90,7 +92,7 @@ template<typename DESIGN_T>
 template<typename DESIGN_T>
 [[nodiscard]] inline DESIGN_T srem(DESIGN_T x, DESIGN_T y) {
     // First, bring x into the interval (-y, y] using fmod:
-    DESIGN_T z = std::fmod(x, y);
+    DESIGN_T z = fmod(x, y);
 
     // Now, if z is outside [-y/2, y/2], shift it by ±y:
     if (z > y / DESIGN_T{2}) {
@@ -128,7 +130,7 @@ static inline void init_landen_sequence(DESIGN_T *seq, DESIGN_T k) {
  */
 template<typename DESIGN_T>
 [[nodiscard]] inline static Complex<DESIGN_T> sn(Complex<DESIGN_T> u, DESIGN_T k) {
-    Complex<DESIGN_T> w = std::sin(u * std::numbers::pi_v<DESIGN_T> / DESIGN_T{2});
+    Complex<DESIGN_T> w = complex_sin(u * numbers::pi_v<DESIGN_T> / DESIGN_T{2});
 
     DESIGN_T landen_seq[NUM_OF_LANDEN_ITERATIONS];
     init_landen_sequence(landen_seq, k);
@@ -165,7 +167,7 @@ template<typename DESIGN_T>
 template<typename DESIGN_T>
 [[nodiscard]] inline DESIGN_T solve_degree_equation(uint32_t N, DESIGN_T k1_prime) {
     const uint32_t L = N / 2;
-    DESIGN_T k_prime = std::pow(k1_prime, N);
+    DESIGN_T k_prime = pow(k1_prime, N);
 
     for (uint32_t i = 0; i < L; ++i) {
         const DESIGN_T u_i = (DESIGN_T{2} * i + DESIGN_T{1}) / N;
@@ -173,7 +175,7 @@ template<typename DESIGN_T>
         k_prime *= sn_val;
     }
 
-    k_prime = std::pow(k_prime, 4);
+    k_prime = pow(k_prime, 4);
     return get_complimentary(k_prime);
 }
 
@@ -195,14 +197,14 @@ template<typename DESIGN_T>
     for (uint32_t i = 0; i < NUM_OF_LANDEN_ITERATIONS; ++i) {
         v_prev = v_n;
         v_n = landen_next(v_n);
-        w = w / (DESIGN_T{1} + std::sqrt(DESIGN_T{1} - w * w * v_prev * v_prev)) * DESIGN_T{2} / (DESIGN_T{1} + v_n);
+        w = w / (DESIGN_T{1} + complex_sqrt(Complex<DESIGN_T>{DESIGN_T{1}} - w * w * (v_prev * v_prev))) * DESIGN_T{2} / (DESIGN_T{1} + v_n);
     }
 
-    const Complex u = (w == DESIGN_T{1})
-                      ? DESIGN_T{0}
-                      : DESIGN_T{2} * std::numbers::inv_pi_v<DESIGN_T> * std::acos(w);
+    const Complex<DESIGN_T> u = (w == DESIGN_T{1})
+                      ? Complex<DESIGN_T>{DESIGN_T{0}}
+                      : DESIGN_T{2} * numbers::inv_pi_v<DESIGN_T> * complex_acos(w);
 
-    const Complex acd = {srem<DESIGN_T>(u.real(), DESIGN_T{4}), srem(u.imag(), DESIGN_T{2} * R)};
+    const Complex<DESIGN_T> acd = {srem<DESIGN_T>(u.real(), DESIGN_T{4}), srem(u.imag(), DESIGN_T{2} * R)};
     return DESIGN_T{1} - acd; // Using cd(z, k) = sn(z + K, k)
 }
 

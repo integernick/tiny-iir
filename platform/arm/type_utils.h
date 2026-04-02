@@ -3,7 +3,7 @@
 #include <common/common_utils.h>
 
 #include <dsp/filtering_functions.h>
-#include <cmath>
+#include <math.h>
 #include <cstring>
 
 namespace tiny_iir {

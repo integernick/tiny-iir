@@ -2,6 +2,8 @@
 
 #include "common/IIRFilter.h"
 
+#include <math.h>
+
 namespace tiny_iir {
 
 template<uint32_t N = 2, typename T = double, FilterPassType PASS_TYPE = FilterPassType::LowPass,
@@ -94,18 +96,18 @@ void IIRButter<N, T, PASS_TYPE, DT>::init_analog() {
     if constexpr (N & 1) {
         IIRFilterBase::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {
                 -DT{1},
-                std::numeric_limits<DT>::infinity()
+                infinity_v<DT>
         };
     }
 
     for (uint32_t i = 0; i < N / 2; ++i) {
         // Angle from the imaginary axis:
-        const DT phi = static_cast<DT>(2 * i + 1) * (std::numbers::pi_v<DT> / DT{2}) / N;
-        const DT pole_s_real = -std::sin(phi);
-        const DT pole_s_imag = std::cos(phi);
+        const DT phi = static_cast<DT>(2 * i + 1) * (numbers::pi_v<DT> / DT{2}) / N;
+        const DT pole_s_real = -sin(phi);
+        const DT pole_s_imag = cos(phi);
         IIRFilterBase::_analog_pole_zero_pairs[i] = {
                 {pole_s_real,                         pole_s_imag},
-                {std::numeric_limits<DT>::infinity(), DT{0}}
+                {infinity_v<DT>, DT{0}}
         };
     }
 }

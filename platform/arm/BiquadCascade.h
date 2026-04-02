@@ -5,6 +5,7 @@
 
 #include <dsp/filtering_functions.h>
 
+#include <math.h>
 #include <type_traits>
 
 namespace tiny_iir {
@@ -26,14 +27,14 @@ ScientificNotation<DESIGN_T> get_scientific_notation(DESIGN_T value) {
 
     if (value > DESIGN_T{1}) {
         // Scale the gain inverse to the range [0.5, 1.0)
-        auto k = static_cast<int8_t>(std::ceil(std::log2(value)));
+        auto k = static_cast<int8_t>(ceil(log2(value)));
         if (k < 0) {
             k = 0;
         }
         sn.exp = k;
 
         // Scale factor 2^{-k}
-        sn.scale = std::ldexp(DESIGN_T{1}, -k);
+        sn.scale = ldexp(DESIGN_T{1}, -k);
     }
 
     return sn;
@@ -341,11 +342,11 @@ public:
                 .a2 = -biquad_coefficients.a2
         };
 
-        const DESIGN_T max_val = std::max({std::abs(biquad_coefficients.b0),
-                                           std::abs(biquad_coefficients.b1),
-                                           std::abs(biquad_coefficients.b2),
-                                           std::abs(biquad_coefficients.a1),
-                                           std::abs(biquad_coefficients.a2)});
+        const DESIGN_T max_val = tiny_iir_max(fabs(biquad_coefficients.b0),
+                                           fabs(biquad_coefficients.b1),
+                                           fabs(biquad_coefficients.b2),
+                                           fabs(biquad_coefficients.a1),
+                                           fabs(biquad_coefficients.a2));
 
         DESIGN_T scale;
 
@@ -397,13 +398,13 @@ public:
         int8_t e = 0;
 
         if (g > DESIGN_T{1}) {
-            e = (int8_t) std::ceil(std::log2(g));
+            e = (int8_t) ceil(log2(g));
             e = constrain(e, static_cast<int8_t>(0), static_cast<int8_t>(30));
-            g = std::ldexp(g, -e); // g := g / 2^e  in (0,1]
+            g = ldexp(g, -e); // g := g / 2^e  in (0,1]
         }
 
         // Clamp mantissa away from 1.0 to avoid rounding to 2^31 in Q31
-        const DESIGN_T one_minus = std::nextafter(DESIGN_T{1}, DESIGN_T{0});
+        const DESIGN_T one_minus = nextafter(DESIGN_T{1}, DESIGN_T{0});
         if (g > one_minus) {
             g = one_minus;
         }
@@ -549,11 +550,11 @@ public:
                 .a2 = -biquad_coefficients.a2
         };
 
-        const DESIGN_T max_val = std::max({std::abs(biquad_coefficients.b0),
-                                           std::abs(biquad_coefficients.b1),
-                                           std::abs(biquad_coefficients.b2),
-                                           std::abs(biquad_coefficients.a1),
-                                           std::abs(biquad_coefficients.a2)});
+        const DESIGN_T max_val = tiny_iir_max(fabs(biquad_coefficients.b0),
+                                           fabs(biquad_coefficients.b1),
+                                           fabs(biquad_coefficients.b2),
+                                           fabs(biquad_coefficients.a1),
+                                           fabs(biquad_coefficients.a2));
         DESIGN_T scale;
 
         if (max_val > DESIGN_T{1}) {
@@ -608,13 +609,13 @@ public:
         int8_t e = 0;
 
         if (g > DESIGN_T{1}) {
-            e = static_cast<int8_t>(std::ceil(std::log2(g)));
+            e = static_cast<int8_t>(ceil(log2(g)));
             e = constrain(e, static_cast<int8_t>(0), static_cast<int8_t>(14));
-            g = std::ldexp(g, -e); // g := g / 2^e  in (0,1]
+            g = ldexp(g, -e); // g := g / 2^e  in (0,1]
         }
 
         // Clamp mantissa away from 1.0 to avoid rounding to 2^15 in Q15
-        const DESIGN_T one_minus = std::nextafter(DESIGN_T{1}, 0.0);
+        const DESIGN_T one_minus = nextafter(DESIGN_T{1}, 0.0);
 
         if (g > one_minus) {
             g = one_minus;

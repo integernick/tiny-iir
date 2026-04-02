@@ -204,7 +204,7 @@ private:
      *          after which the poles and zeros are arranged in pairs.
      * @param pole_zero_pairs  The pole-zero pairs.
      */
-    void add_pole_zero_pairs(const std::pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
+    void add_pole_zero_pairs(const Pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
     (PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) and (N & 1) != 0);
 
     PassTypeTransform<PASS_TYPE, N, DT> _pass_type_data;
@@ -315,7 +315,7 @@ PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) 
     _cascade_filter.init_coefficients();
 
     constexpr DT MIN_FREQ = DT{1e-8};
-    constexpr DT MAX_FREQ = DT{2} * std::numbers::pi_v<DT> - MIN_FREQ;
+    constexpr DT MAX_FREQ = DT{2} * numbers::pi_v<DT> - MIN_FREQ;
 
     if (cutlow_freq < MIN_FREQ) {
         cutlow_freq = MIN_FREQ;
@@ -399,7 +399,7 @@ void IIRFilter<N, T, PASS_TYPE, DT>::push_biquad_coefficients(BiquadCoefficients
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_pairs(
-        const std::pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
+        const Pair<PoleZeroPair<DT>, PoleZeroPair<DT>> &pole_zero_pairs) requires (
 (PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) and (N & 1) != 0) {
     // (z - z1)(z - z2)=z^2 - z(z1+z2) + z1z2 = z^2 * (1 - (z1+z2)z^-1 + (z1*z2)*z^-2)
     const Complex<DT> &p1 = pole_zero_pairs.first.pole;
@@ -412,11 +412,11 @@ void IIRFilter<N, T, PASS_TYPE, DT>::add_pole_zero_pairs(
             .b1 = -(pole_zero_pairs.first.zero.real() + pole_zero_pairs.second.zero.real()),
             .b2 = z1.imag() == DT{0}
                   ? z1.real() * z2.real()
-                  : std::abs(z1),
+                  : abs(z1),
             .a1 = -(pole_zero_pairs.first.pole.real() + pole_zero_pairs.second.pole.real()),
             .a2 = p1.imag() == DT{0}
                   ? p1.real() * p2.real()
-                  : std::norm(p1)
+                  : norm(p1)
     };
 
     push_biquad_coefficients(biquad_coefficients);

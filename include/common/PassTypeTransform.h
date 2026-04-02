@@ -1,8 +1,7 @@
 #pragma once
 
 #include "common_utils.h"
-
-#include <numbers>
+#include "tiny_iir_complex_math.h"
 
 namespace tiny_iir {
 template<FilterPassType, uint32_t N, typename DESIGN_T>
@@ -35,8 +34,8 @@ public:
      */
     void init(DESIGN_T normalized_cutoff_frequency) {
         normalized_cutoff_frequency = clamp_frequency(normalized_cutoff_frequency);
-        _wn_warped = std::tan(
-                (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
+        _wn_warped = tan(
+                (numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
 
     /**
@@ -47,7 +46,7 @@ public:
      * @return    The complex value on z-plane.
      */
     [[nodiscard]] Complex<DESIGN_T> transform(Complex<DESIGN_T> s) {
-        if (!std::isfinite(s.real()) || !std::isfinite(s.imag())) {
+        if (!isfinite(s.real()) || !isfinite(s.imag())) {
             return {-DESIGN_T{1}, 0};
         }
 
@@ -88,8 +87,8 @@ public:
      */
     void init(DESIGN_T normalized_cutoff_frequency) {
         normalized_cutoff_frequency = clamp_frequency(normalized_cutoff_frequency);
-        _wn_warped = DESIGN_T{1} / std::tan(
-                (std::numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
+        _wn_warped = DESIGN_T{1} / tan(
+                (numbers::pi_v<DESIGN_T> * normalized_cutoff_frequency) * static_cast<DESIGN_T>(0.5));
     }
 
     /**
@@ -100,7 +99,7 @@ public:
      * @return    The complex value on z-plane.
      */
     [[nodiscard]] Complex<DESIGN_T> transform(Complex<DESIGN_T> s) {
-        if (!std::isfinite(s.real()) || !std::isfinite(s.imag())) {
+        if (!isfinite(s.real()) || !isfinite(s.imag())) {
             return {1, 0};
         }
 
@@ -138,13 +137,13 @@ public:
      */
     [[nodiscard]] DESIGN_T calculate_gain(const BiquadCoefficients<DESIGN_T> &biquad_coefficients) {
         // Evaluate at z = e^(j*wn) (at the peak frequency)
-        const Complex<DESIGN_T> z_inv = std::polar(DESIGN_T{1}, -_wn_peak);
-        const Complex<DESIGN_T> z_inv2 = std::polar(DESIGN_T{1}, -2 * _wn_peak);
+        const Complex<DESIGN_T> z_inv = polar(DESIGN_T{1}, -_wn_peak);
+        const Complex<DESIGN_T> z_inv2 = polar(DESIGN_T{1}, -2 * _wn_peak);
         Complex<DESIGN_T> response =
                 biquad_coefficients.b0 + biquad_coefficients.b1 * z_inv + biquad_coefficients.b2 * z_inv2;
         response /= (DESIGN_T{1} + biquad_coefficients.a1 * z_inv + biquad_coefficients.a2 * z_inv2);
 
-        return std::abs(response);
+        return abs(response);
     }
 
     /**
@@ -154,7 +153,7 @@ public:
      * @param cuthigh_freq  The high cutoff frequency.
      */
     void init(DESIGN_T cutlow_freq, DESIGN_T cuthigh_freq) {
-        static constexpr DESIGN_T m_pi_2_v = std::numbers::pi_v<DESIGN_T> * static_cast<DESIGN_T>(0.5);
+        static constexpr DESIGN_T m_pi_2_v = numbers::pi_v<DESIGN_T> * static_cast<DESIGN_T>(0.5);
 
         cutlow_freq = clamp_frequency(cutlow_freq);
         cuthigh_freq = clamp_frequency(cuthigh_freq);
@@ -171,12 +170,12 @@ public:
         const DESIGN_T w1 = w_central - w_bandwidth * 0.5;
         const DESIGN_T w2 = w_central + w_bandwidth * 0.5;
 
-        _l_inv = std::tan(m_pi_2_v * (cuthigh_freq - cutlow_freq));
-        _alpha = std::cos(m_pi_2_v * (cuthigh_freq + cutlow_freq))
-                 / std::cos(m_pi_2_v * (cuthigh_freq - cutlow_freq));
+        _l_inv = tan(m_pi_2_v * (cuthigh_freq - cutlow_freq));
+        _alpha = cos(m_pi_2_v * (cuthigh_freq + cutlow_freq))
+                 / cos(m_pi_2_v * (cuthigh_freq - cutlow_freq));
         _alpha2 = _alpha * _alpha;
-        const DESIGN_T w_avg = std::sqrt(std::tan(w1) * std::tan(w2));
-        _wn_peak = 2 * std::atan(w_avg);
+        const DESIGN_T w_avg = sqrt(tan(w1) * tan(w2));
+        _wn_peak = 2 * atan(w_avg);
     }
 
     /**
@@ -187,7 +186,7 @@ public:
      * @return    The pair of transformed complex roots on z-plane.
      */
     [[nodiscard]] TransformedRootsPair transform(Complex<DESIGN_T> s) {
-        if (!std::isfinite(s.real()) || !std::isfinite(s.imag())) {
+        if (!isfinite(s.real()) || !isfinite(s.imag())) {
             return {{-DESIGN_T{1}, 0},
                     {DESIGN_T{1},  0}};
         }
@@ -196,7 +195,7 @@ public:
         const Complex<DESIGN_T> A = DESIGN_T{1} - s;
         const Complex<DESIGN_T> C = DESIGN_T{1} + s;
         const Complex<DESIGN_T> A_inv = DESIGN_T{1} / A;
-        const Complex<DESIGN_T> sqrtD = std::sqrt(_alpha2 - A * C);
+        const Complex<DESIGN_T> sqrtD = complex_sqrt(_alpha2 - A * C);
         const Complex<DESIGN_T> z1 = (_alpha + sqrtD) * A_inv;
         const Complex<DESIGN_T> z2 = (_alpha - sqrtD) * A_inv;
 
@@ -244,7 +243,7 @@ public:
      * @param cuthigh_freq  The high cutoff frequency.
      */
     void init(DESIGN_T cutlow_freq, DESIGN_T cuthigh_freq) {
-        static constexpr DESIGN_T m_pi_2_v = std::numbers::pi_v<DESIGN_T> * static_cast<DESIGN_T>(0.5);
+        static constexpr DESIGN_T m_pi_2_v = numbers::pi_v<DESIGN_T> * static_cast<DESIGN_T>(0.5);
 
         cutlow_freq = clamp_frequency(cutlow_freq);
         cuthigh_freq = clamp_frequency(cuthigh_freq);
@@ -255,10 +254,10 @@ public:
             cutlow_freq = temp;
         }
 
-        DESIGN_T w1n = std::tan(m_pi_2_v * cutlow_freq);
-        DESIGN_T w2n = std::tan(m_pi_2_v * cuthigh_freq);
+        DESIGN_T w1n = tan(m_pi_2_v * cutlow_freq);
+        DESIGN_T w2n = tan(m_pi_2_v * cuthigh_freq);
         _bw = w2n - w1n;
-        _w0 = std::sqrt(w1n * w2n);
+        _w0 = sqrt(w1n * w2n);
 
         const DESIGN_T w0_sq = _w0 * _w0;
         _mapped_infinity_value
@@ -273,13 +272,13 @@ public:
      * @return    The pair of transformed complex roots on z-plane.
      */
     [[nodiscard]] TransformedRootsPair transform(Complex<DESIGN_T> s) {
-        if (!std::isfinite(s.real()) || !std::isfinite(s.imag())) {
-            return {_mapped_infinity_value, std::conj(_mapped_infinity_value)};
+        if (!isfinite(s.real()) || !isfinite(s.imag())) {
+            return {_mapped_infinity_value, conj(_mapped_infinity_value)};
         }
 
         const DESIGN_T w0_sq = _w0 * _w0;
         const DESIGN_T bw_sq = _bw * _bw;
-        const Complex<DESIGN_T> sqrtD = std::sqrt(bw_sq - DESIGN_T{4} * w0_sq * s * s);
+        const Complex<DESIGN_T> sqrtD = complex_sqrt(Complex<DESIGN_T>{bw_sq} - DESIGN_T{4} * w0_sq * s * s);
         const Complex<DESIGN_T> den = (s * (1 + w0_sq) - _bw);
         const Complex<DESIGN_T> den_inv = DESIGN_T{1} / den;
         const Complex<DESIGN_T> B = s * (1 - w0_sq);

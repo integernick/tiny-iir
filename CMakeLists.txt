@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(TINY_IIR_BUILD_WITH_CMSIS "Build tiny-iir using CMSIS-DSP" ON)
 option(TINY_IIR_BUILD_TESTS "Build tiny-iir tests" ON)
 option(TINY_IIR_BUILD_TOOLS "Build tiny-iir CLI utility" ON)
+option(TINY_IIR_USE_STL "Use standard C++ library (complex, algorithm, numbers) instead of built-in freestanding implementations" OFF)
 set(TINY_IIR_CHUNK_SIZE 32 CACHE STRING "Chunk size for processing")
 
 if (TINY_IIR_BUILD_TESTS)
@@ -43,6 +44,13 @@ else()
 endif()
 
 target_compile_definitions(tiny_iir_core INTERFACE TINY_IIR_CHUNK_SIZE=${TINY_IIR_CHUNK_SIZE})
+
+if (TINY_IIR_USE_STL)
+    message(STATUS "tiny-iir: using standard C++ library for math primitives")
+    target_compile_definitions(tiny_iir_core INTERFACE TINY_IIR_USE_STL)
+else()
+    message(STATUS "tiny-iir: using built-in freestanding math primitives")
+endif()
 
 # ---- Subdirs
 if (TINY_IIR_BUILD_TESTS)

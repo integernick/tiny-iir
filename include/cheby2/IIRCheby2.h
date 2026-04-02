@@ -2,6 +2,8 @@
 
 #include "common/IIRFilter.h"
 
+#include <math.h>
+
 namespace tiny_iir {
 /**
  * @brief   IIR Chebyshev Type II filter.
@@ -94,7 +96,7 @@ PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop)
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRCheby2<N, T, PASS_TYPE, DT>::configure(DT normalized_cutoff_frequency, DT stopband_ripple_db) requires (
 PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass) {
-    stopband_ripple_db = std::abs(stopband_ripple_db);
+    stopband_ripple_db = fabs(stopband_ripple_db);
 
     if (stopband_ripple_db != _stopband_ripple_db) {
         _stopband_ripple_db = stopband_ripple_db;
@@ -108,7 +110,7 @@ template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRCheby2<N, T, PASS_TYPE, DT>::configure(DT normalized_lowcut_freq, DT normalized_highcut_freq,
                                                DT stopband_ripple_db) requires (
 PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) {
-    stopband_ripple_db = std::abs(stopband_ripple_db);
+    stopband_ripple_db = fabs(stopband_ripple_db);
 
     if (stopband_ripple_db != _stopband_ripple_db) {
         _stopband_ripple_db = stopband_ripple_db;
@@ -125,23 +127,23 @@ DT IIRCheby2<N, T, PASS_TYPE, DT>::get_analog_gain() const {
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRCheby2<N, T, PASS_TYPE, DT>::init_analog() {
-    const DT delta = 1.0 / std::sqrt(std::exp(_stopband_ripple_db * 0.1 * std::numbers::ln10_v<DT>) - 1);
-    const DT mu = std::asinh(1.0 / delta) / N;
-    const DT sinh_mu = std::sinh(mu);
-    const DT cosh_mu = std::cosh(mu);
+    const DT delta = 1.0 / sqrt(exp(_stopband_ripple_db * 0.1 * numbers::ln10_v<DT>) - 1);
+    const DT mu = asinh(1.0 / delta) / N;
+    const DT sinh_mu = sinh(mu);
+    const DT cosh_mu = cosh(mu);
 
     if constexpr (N & 1) {
         IIRFilter<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {
                 -DT{1} / sinh_mu,
-                std::numeric_limits<DT>::infinity()
+                infinity_v<DT>
         };
     }
 
     for (uint32_t i = 0; i < N / 2; ++i) {
         // Angle from the imaginary axis:
-        const DT phi = static_cast<DT>(2 * i + 1) * std::numbers::pi_v<DT> * static_cast<DT>(0.5) / N;
-        const DT sin_phi = std::sin(phi);
-        const DT cos_phi = std::cos(phi);
+        const DT phi = static_cast<DT>(2 * i + 1) * numbers::pi_v<DT> * static_cast<DT>(0.5) / N;
+        const DT sin_phi = sin(phi);
+        const DT cos_phi = cos(phi);
 
         const DT pole_s_real = -sinh_mu * sin_phi;
         const DT pole_s_imag = cosh_mu * cos_phi;

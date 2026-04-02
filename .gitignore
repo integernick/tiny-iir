@@ -1,3 +1,15 @@
-/build*
-/cmake-build-*
+.cache
+.claude
 .idea
+.vscode/*
+!.vscode/tasks.json
+!.vscode/settings.json
+
+CLAUDE.md
+*.idx
+
+/build*
+/cmake-build*
+
+**/__pycache__/
+**/.DS_Store

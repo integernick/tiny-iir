@@ -1,11 +1,8 @@
 #pragma once
 
-#include <complex>
+#include "tiny_iir_math.h"
 
 namespace tiny_iir {
-
-template<typename DESIGN_T>
-using Complex = std::complex<DESIGN_T>;
 
 enum class FilterPassType : int {
     LowPass,
@@ -21,8 +18,8 @@ enum class FilterPassType : int {
 
 template<typename DESIGN_T>
 struct PoleZeroPair {
-    std::complex<DESIGN_T> pole;
-    std::complex<DESIGN_T> zero;
+    Complex<DESIGN_T> pole;
+    Complex<DESIGN_T> zero;
 };
 
 template<typename DESIGN_T>
@@ -65,7 +62,7 @@ DESIGN_T clamp_frequency(DESIGN_T frequency) {
     constexpr DESIGN_T MIN_FREQ = DESIGN_T{0.0001};  // 0.01% of Nyquist
     constexpr DESIGN_T MAX_FREQ = DESIGN_T{0.9999};  // 99.99% of Nyquist
 
-    return constrain(std::abs(frequency), MIN_FREQ, MAX_FREQ);
+    return constrain(frequency < DESIGN_T{0} ? -frequency : frequency, MIN_FREQ, MAX_FREQ);
 }
 
 }

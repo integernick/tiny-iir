@@ -3,6 +3,8 @@
 #include "elliptic_utils.h"
 #include "common/IIRFilter.h"
 
+#include <math.h>
+
 namespace tiny_iir {
 
 /**
@@ -108,8 +110,8 @@ template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRElliptic<N, T, PASS_TYPE, DT>::configure(DT normalized_cutoff_frequency,
                                                  DT pass_ripple_db, DT stop_attenuation_db) requires (
 PASS_TYPE == FilterPassType::LowPass or PASS_TYPE == FilterPassType::HighPass) {
-    pass_ripple_db = std::abs(pass_ripple_db);
-    stop_attenuation_db = std::abs(stop_attenuation_db);
+    pass_ripple_db = fabs(pass_ripple_db);
+    stop_attenuation_db = fabs(stop_attenuation_db);
 
     if (pass_ripple_db != _pass_ripple_db || stop_attenuation_db != _stop_attenuation_db) {
         _pass_ripple_db = pass_ripple_db;
@@ -124,8 +126,8 @@ template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRElliptic<N, T, PASS_TYPE, DT>::configure(DT normalized_lowcut_freq, DT normalized_highcut_freq,
                                                  DT pass_ripple_db, DT stop_attenuation_db) requires (
 PASS_TYPE == FilterPassType::BandPass or PASS_TYPE == FilterPassType::BandStop) {
-    pass_ripple_db = std::abs(pass_ripple_db);
-    stop_attenuation_db = std::abs(stop_attenuation_db);
+    pass_ripple_db = fabs(pass_ripple_db);
+    stop_attenuation_db = fabs(stop_attenuation_db);
 
     if (pass_ripple_db != _pass_ripple_db || stop_attenuation_db != _stop_attenuation_db) {
         _pass_ripple_db = pass_ripple_db;
@@ -141,14 +143,14 @@ DT IIRElliptic<N, T, PASS_TYPE, DT>::get_analog_gain() const {
     if constexpr (N & 1) {
         return DT{1};
     } else {
-        return std::exp(-_pass_ripple_db / DT{20} * std::numbers::ln10_v<DT>);
+        return exp(-_pass_ripple_db / DT{20} * numbers::ln10_v<DT>);
     }
 }
 
 template<uint32_t N, typename T, FilterPassType PASS_TYPE, typename DT>
 void IIRElliptic<N, T, PASS_TYPE, DT>::init_analog() {
-    const DT eps_p = std::sqrt(std::exp(_pass_ripple_db * DT{0.1} * std::numbers::ln10_v<DT>) - DT{1});
-    const DT eps_s = std::sqrt(std::exp(_stop_attenuation_db * DT{0.1} * std::numbers::ln10_v<DT>) - DT{1});
+    const DT eps_p = sqrt(exp(_pass_ripple_db * DT{0.1} * numbers::ln10_v<DT>) - DT{1});
+    const DT eps_s = sqrt(exp(_stop_attenuation_db * DT{0.1} * numbers::ln10_v<DT>) - DT{1});
 
     const DT k1 = eps_p / eps_s; // The ratio (eps_p / eps_s) << 1
 
@@ -167,7 +169,7 @@ void IIRElliptic<N, T, PASS_TYPE, DT>::init_analog() {
 
     if constexpr (N & 1) {
         const Complex<DT> pole = IMAG_UNIT * sn<DT>(IMAG_UNIT * v0, k);
-        const Complex<DT> zero = Complex<DT>{std::numeric_limits<DT>::infinity(), DT{0}};
+        const Complex<DT> zero = Complex<DT>{infinity_v<DT>, DT{0}};
         IIRFilter<N, T, PASS_TYPE, DT>::_analog_pole_zero_pairs[(N + 1) / 2 - 1] = {pole, zero};
     }
 

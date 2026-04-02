@@ -10,6 +10,10 @@
 #define TINY_IIR_CASCADE_FILTER_DEBUG    0
 #endif
 
+#if TINY_IIR_CASCADE_FILTER_DEBUG > 0
+#include <stdio.h>
+#endif
+
 #if !defined(TINY_IIR_CHUNK_SIZE)
 #define TINY_IIR_CHUNK_SIZE     32
 #endif
@@ -347,7 +351,7 @@ void CascadeFilter<N, T, DESIGN_T>::process(const T *in, T *out, uint32_t num_sa
     T in_buf[PROCESS_CHUNK_SIZE];
 
     for (uint32_t i = 0; i < num_samples;) {
-        const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
+        const uint32_t n = tiny_iir_min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
         scale(in + i, _gain_crossfade, in_buf, n);
         _biquad_cascade.process_cascade(in_buf, out + i, n);
         i += n;
@@ -365,7 +369,7 @@ T CascadeFilter<N, T, DESIGN_T>::process(const T *x, uint32_t num_samples) {
     T last{};
 
     for (uint32_t i = 0; i < num_samples;) {
-        const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
+        const uint32_t n = tiny_iir_min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
         scale(x + i, _gain_crossfade, in_buf, n);
         _biquad_cascade.process_cascade(in_buf, out_buf, n);
         last = out_buf[n - 1];
@@ -397,7 +401,7 @@ void CascadeFilter<N, T, DESIGN_T>::process(const U *in, U *out, uint32_t num_sa
     T in_native[PROCESS_CHUNK_SIZE];
 
     for (uint32_t i = 0; i < num_samples;) {
-        const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
+        const uint32_t n = tiny_iir_min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
         to_native(in + i, in_native, n);
         process(in_native, in_native, n);
         to_native<U, T>(in_native, out + i, n);
@@ -416,7 +420,7 @@ U CascadeFilter<N, T, DESIGN_T>::process(const U *in, uint32_t num_samples) {
     T in_native[PROCESS_CHUNK_SIZE];
 
     for (uint32_t i = 0; i < num_samples;) {
-        const uint32_t n = std::min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
+        const uint32_t n = tiny_iir_min<uint32_t>(PROCESS_CHUNK_SIZE, num_samples - i);
         to_native(in + i, in_native, n);
         process(in_native, in_native, n);
         to_native<U, T>(&in_native[n - 1], &last, 1);

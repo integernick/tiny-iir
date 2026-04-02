@@ -23,6 +23,13 @@ add_subdirectory(path/to/tiny-iir)
 target_link_libraries(my-project PRIVATE tiny_iir_core)
 ```
 
+### standard library
+by default, `tiny-iir` uses built‑in freestanding math primitives (no `<complex>`, `<algorithm>`, `<numbers>`).
+if your toolchain provides the full c++ standard library you can use it instead:
+```cmake
+set(TINY_IIR_USE_STL ON CACHE BOOL "Use standard C++ library")
+```
+
 ### chunk size
 `tiny‑iir` uses a small on‑stack scratch buffer for block processing.  
 default is **32**. tune via a compile‑time define:
